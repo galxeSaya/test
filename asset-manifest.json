@@ -1,8 +1,8 @@
 {
   "files": {
-    "main.js": "/test/static/js/main.ccf75f8a.js",
-    "index.html": "/test/index.html",
-    "main.ccf75f8a.js.map": "/test/static/js/main.ccf75f8a.js.map"
+    "main.js": "./static/js/main.ccf75f8a.js",
+    "index.html": "./index.html",
+    "main.ccf75f8a.js.map": "./static/js/main.ccf75f8a.js.map"
   },
   "entrypoints": [
     "static/js/main.ccf75f8a.js"
