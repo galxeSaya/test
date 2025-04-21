@@ -237,6 +237,7 @@ const NewsLineChart: React.FC<NewsLineChartProps> = ({
       
       {/* 工具提示 */}
       {tooltipData && (
+        // @ts-ignore
         <TooltipWithBounds
           key={Math.random()} // 确保更新位置
           style={tooltipStyles}
