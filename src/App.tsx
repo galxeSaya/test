@@ -3,6 +3,7 @@ import { ParentSize } from '@visx/responsive';
 import NewsLineChart from './components/NewsLineChart';
 import RechartsNewsLineChart from './components/RechartsNewsLineChart';
 import VisxCandleStickChart from './components/VisxCandleStickChart';
+import VisxCandleStickChartV2 from './components/VisxCandleStickChartV2';
 import { sampleData, sampleNewsPoints } from './data/sampleData';
 import { sampleCandleData, sampleCandleNewsPoints } from './data/sampleCandleData';
 
@@ -95,6 +96,29 @@ const App: React.FC = () => {
             {({ width, height }) => (
               width > 0 && height > 0 ? (
                 <VisxCandleStickChart
+                  width={width}
+                  height={height}
+                  data={sampleCandleData}
+                  newsPoints={sampleCandleNewsPoints}
+                />
+              ) : <div>调整大小中...</div>
+            )}
+          </ParentSize>
+        </ErrorBoundary>
+      </div>
+      
+      <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
+        <p>提示: 将鼠标悬停在折线上可查看数据点信息，红色方块代表新闻事件，悬停在上面可查看详情。</p>
+      </div>
+
+      {/* ViSX 蜡烛图实现 */}
+      <h2 style={{ marginTop: '30px' }}>ViSX 蜡烛图实现 V2</h2>
+      <div style={{ width: '100%', height: '500px', border: '1px solid #ddd', borderRadius: '8px' }}>
+        <ErrorBoundary>
+          <ParentSize>
+            {({ width, height }) => (
+              width > 0 && height > 0 ? (
+                <VisxCandleStickChartV2
                   width={width}
                   height={height}
                   data={sampleCandleData}
