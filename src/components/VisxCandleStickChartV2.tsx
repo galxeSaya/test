@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, WheelEvent } from "react";
+import React, { useMemo, useState, useCallback, WheelEvent, useRef, useEffect } from "react";
 import { scaleLinear, scaleTime } from "@visx/scale";
 import { AxisRight, AxisBottom } from "@visx/axis";
 import { GridRows, GridColumns } from "@visx/grid";
@@ -61,6 +61,7 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   const [tooltipData, setTooltipData] = useState<TTooltipData>();
   const [chartHeight, setChartHeight] = useState(height);
   const [isMini, setIsMini] = useState(false);
+  const svgRef = useRef<SVGSVGElement | null>(null);
 
   // 数据范围状态 - 初始化为显示末尾的50个数据点
   const [visibleRange, setVisibleRange] = useState({
@@ -185,10 +186,8 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     null
   );
 
-  // 处理鼠标滚轮事件
+  // 将wheel事件处理函数修改为不调用preventDefault
   const handleWheel = useCallback((event: WheelEvent<SVGSVGElement>) => {
-    event.preventDefault();
-    
     // 确定缩放方向：向下滚动(正deltaY)=缩小，向上滚动(负deltaY)=放大
     const isZoomIn = event.deltaY < 0;
     
@@ -228,6 +227,28 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
       endIndex: newEndIndex
     });
   }, [data.length, innerWidth, margin.left, visibleRange]);
+  
+  // 使用 useEffect 添加非被动的 wheel 事件监听器
+  useEffect(() => {
+    const svgElement = svgRef.current;
+    
+    if (!svgElement) return;
+    
+    const wheelHandler = (e: WheelEvent | Event) => {
+      e.preventDefault();
+      
+      // 在这里我们不需要重复处理逻辑，只需阻止默认行为
+      // 实际的缩放逻辑仍由 onWheel={handleWheel} 处理
+    };
+    
+    // 添加非被动事件监听器
+    svgElement.addEventListener('wheel', wheelHandler, { passive: false });
+    
+    // 清理函数
+    return () => {
+      svgElement.removeEventListener('wheel', wheelHandler);
+    };
+  }, []);
 
   // 处理鼠标移动事件
   const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
@@ -308,6 +329,7 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
         </div>
         <div style={{ height: chartHeight }} className="relative z-[1]">
           <svg
+            ref={svgRef}
             width={width}
             height={chartHeight}
             onMouseMove={handleMouseMove}
