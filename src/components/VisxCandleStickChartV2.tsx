@@ -415,6 +415,11 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     });
   };
 
+  const handleNewClick = () => {
+    console.log('Clicked on news point');
+    
+  }
+
   return (
     <div>
       <TopTool toogleMini={() => setIsMini(!isMini)} isMini={isMini} />
@@ -686,6 +691,7 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                   <div>
                     <strong>{tooltipData.newsPoint.title}</strong>
                     <p>{tooltipData.newsPoint.content}</p>
+                    <button onClick={handleNewClick}>点击新闻</button>
                   </div>
                 </div>
               </TooltipWithBounds>
