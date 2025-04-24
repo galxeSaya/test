@@ -16,7 +16,7 @@ const DEFAULT_VISIBLE_ITEMS = 50;
 // 缩放系数
 const ZOOM_FACTOR = 0.1;
 // 最小可见数据点数量
-const MIN_VISIBLE_ITEMS = 10;
+const MIN_VISIBLE_ITEMS = 5;
 
 export const INCREASE_COLOR = "#4caf50"; // 绿色
 export const DECREASE_COLOR = "#ff5722"; // 红色
