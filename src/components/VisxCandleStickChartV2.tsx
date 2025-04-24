@@ -313,12 +313,11 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                           fill="transparent"
                           style={{ cursor: "pointer" }}
                         />
-                        {/* 可见的新闻标记 */}
-                        <rect
-                          x={x - 5}
-                          y={highY - 15}
-                          width={10}
-                          height={10}
+                        {/* 将可见的新闻标记从方形改为圆形 */}
+                        <circle
+                          cx={x}
+                          cy={highY - 15}
+                          r={5} // 圆形半径为5，相当于原来10x10的方形
                           fill="blue"
                           stroke="#fff"
                           strokeWidth={1}
