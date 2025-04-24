@@ -24,7 +24,7 @@ const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
     return res;
   }, [tooltipData]);
   return (
-    <div className="mt-3">
+    <div className="py-3 pl-16 pr-6 border-t border-t-gray-300">
       <div className="flex *:w-1/4 flex-wrap">
         <div className="mb-1">
           <strong>日期1:</strong>
@@ -43,8 +43,7 @@ const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
           <strong>最低价:</strong> {props.low}
         </div>
         <div className="mb-1">
-          <strong>成交量:</strong>
-          {props.volume}
+          <strong>成交量:</strong> {props.volume}
         </div>
       </div>
     </div>

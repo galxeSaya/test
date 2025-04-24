@@ -37,7 +37,7 @@ const App = () => {
       <h1 className="text-center text-3xl font-bold mb-6">新闻数据折线图</h1>
       
       {/* ViSX 实现 */}
-      <h2 className="text-2xl font-semibold mb-4">ViSX 实现</h2>
+      {/* <h2 className="text-2xl font-semibold mb-4">ViSX 实现</h2>
       <div className="w-full h-[500px] border border-gray-300 rounded-lg">
         <ErrorBoundary>
           <ParentSize>
@@ -53,7 +53,7 @@ const App = () => {
             )}
           </ParentSize>
         </ErrorBoundary>
-      </div>
+      </div> */}
       
       {/* Recharts 实现 */}
       {/* <h2 className="text-2xl font-semibold mt-8 mb-4">Recharts 实现</h2>
@@ -75,7 +75,7 @@ const App = () => {
       </div> */}
       
       {/* ViSX 蜡烛图实现 */}
-      <h2 className="text-2xl font-semibold mt-8 mb-4">ViSX 蜡烛图实现</h2>
+      {/* <h2 className="text-2xl font-semibold mt-8 mb-4">ViSX 蜡烛图实现</h2>
       <div className="w-full h-[500px] border border-gray-300 rounded-lg">
         <ErrorBoundary>
           <ParentSize>
@@ -91,18 +91,18 @@ const App = () => {
             )}
           </ParentSize>
         </ErrorBoundary>
-      </div>
+      </div> */}
       
       {/* ViSX 蜡烛图实现 V2 */}
       <h2 className="text-2xl font-semibold mt-8 mb-4">ViSX 蜡烛图实现 V2</h2>
-      <div className="w-full h-[500px] border border-gray-300 rounded-lg">
+      <div className="w-full h-auto border border-gray-300 rounded-lg">
         <ErrorBoundary>
           <ParentSize>
             {({ width, height }) => (
-              width > 0 && height > 0 ? (
+              width > 0 ? (
                 <VisxCandleStickChartV2
                   width={width}
-                  height={height}
+                  height={500} // 提供一个初始高度
                   data={sampleCandleData}
                   newsPoints={sampleCandleNewsPoints}
                 />
