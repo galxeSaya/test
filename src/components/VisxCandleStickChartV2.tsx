@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect, Fragment } from "react";
 import { scaleLinear, scaleTime } from "@visx/scale";
-import { AxisLeft, AxisBottom } from "@visx/axis";
+import { AxisLeft, AxisRight, AxisBottom } from "@visx/axis"; // 确保导入AxisRight
 import { GridRows, GridColumns } from "@visx/grid";
 import { Group } from "@visx/group";
 import { localPoint } from "@visx/event";
@@ -305,9 +305,10 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                   );
                 })}
 
-                {/* 价格Y轴 */}
-                <AxisLeft
+                {/* 替换左侧Y轴为右侧Y轴 */}
+                <AxisRight
                   scale={yScale}
+                  left={innerWidth} // 这个属性很重要，将轴定位在右侧
                   label="价格"
                   stroke="#333"
                   tickStroke="#333"
