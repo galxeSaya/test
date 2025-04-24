@@ -9,6 +9,7 @@ import { CandleStickPoint, CandleStickNewsPoint } from "../types/candlestick";
 import { Bar } from "@visx/shape";
 import PriceTip from "./PriceTip";
 import TopTool from "./TopTool";
+import clsx from "clsx";
 
 interface VisxCandleStickChartProps {
   width: number;
@@ -48,8 +49,7 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   // 状态管理：用于跟踪当前悬停的蜡烛和新闻点
   const [tooltipData, setTooltipData] = useState<TTooltipData>();
   const [chartHeight, setChartHeight] = useState(height);
-  const bottomComRef = useRef<HTMLDivElement>(null);
-  const topComRef = useRef<HTMLDivElement>(null);
+  // const bottomComRef = useRef<HTMLDivElement>(null);
   const [isMini, setIsMini] = useState(false);
 
   // 计算图表区域尺寸
@@ -57,14 +57,13 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   const innerHeight = chartHeight - margin.top - margin.bottom;
 
   // 使用 useEffect 测量 bottomCom 高度并调整图表高度
-  useEffect(() => {
-    if (bottomComRef.current && topComRef.current) {
+  /* useEffect(() => {
+    if (bottomComRef.current) {
       const bottomComHeight = bottomComRef.current.offsetHeight;
-      const topComHeight = topComRef.current.offsetHeight;
       // 从总高度中减去 bottomCom 高度，留出一些额外空间
-      setChartHeight(height - bottomComHeight - topComHeight);
+      setChartHeight(height - bottomComHeight);
     }
-  }, [height, tooltipData]);
+  }, [height, tooltipData]); */
 
   // 数据访问器
   const getDate = (d: CandleStickPoint) => d.date;
@@ -117,6 +116,13 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   // 计算蜡烛宽度
   const xBandwidth = innerWidth / data.length;
   const candleWidth = Math.max(xBandwidth * 0.6, 1);
+
+  // 创建用于X轴的自定义刻度数组，每三个点显示一个
+  const customTickValues = useMemo(() => {
+    return data
+      .filter((_, i) => i % 3 === 0) // 每隔三个点取一个
+      .map(d => getDate(d)); // 映射为日期
+  }, [data]);
 
   // 查找数据点对应的新闻点
   const getNewsPointForDate = (
@@ -187,186 +193,189 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   };
 
   return (
-    <div
-      className="relative"
-      style={{ height: isMini ? "auto" : height, width: width }}>
-      <div ref={topComRef}>
+    <div>
+      <div>
         <TopTool toogleMini={() => setIsMini(!isMini)} isMini={isMini} />
       </div>
-      {!isMini && (
-        <Fragment>
-          <div style={{ height: chartHeight }}>
-            <svg
-              width={width}
-              height={chartHeight}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}>
-              <Group left={margin.left} top={margin.top}>
-                {/* 网格线 */}
-                <GridRows
-                  scale={yScale}
-                  width={innerWidth}
-                  strokeDasharray="3,3"
-                  stroke="#e0e0e0"
-                />
-                <GridColumns
-                  scale={xScale}
-                  height={innerHeight}
-                  strokeDasharray="3,3"
-                  stroke="#e0e0e0"
-                />
+      <div
+        className={clsx("relative", {
+          hidden: isMini,
+        })}
+        style={{ height: isMini ? "auto" : height, width: width }}>
+        <div className="absolute top-0 left-0 w-full h-fit pointer-events-none">
+          <PriceTip tooltipData={tooltipData} />
+        </div>
+        <div style={{ height: chartHeight }}>
+          <svg
+            width={width}
+            height={chartHeight}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}>
+            <Group left={margin.left} top={margin.top}>
+              {/* 网格线 */}
+              <GridRows
+                scale={yScale}
+                width={innerWidth}
+                strokeDasharray="3,3"
+                stroke="#e0e0e0"
+              />
+              <GridColumns
+                scale={xScale}
+                height={innerHeight}
+                strokeDasharray="3,3"
+                stroke="#e0e0e0"
+              />
 
-                {/* 绘制成交量柱状图 - 先绘制这个，让其在K线图底下 */}
-                {data.map((d, i) => {
-                  const x = xScale(getDate(d));
-                  const height = innerHeight - volumeYScale(getVolume(d));
+              {/* 绘制成交量柱状图 - 先绘制这个，让其在K线图底下 */}
+              {data.map((d, i) => {
+                const x = xScale(getDate(d));
+                const height = innerHeight - volumeYScale(getVolume(d));
 
-                  // 使用与蜡烛图相同的颜色策略
-                  const isIncreasing = getClose(d) > getOpen(d);
-                  const fillColor = isIncreasing ? "#4caf50" : "#ff5722";
+                // 使用与蜡烛图相同的颜色策略
+                const isIncreasing = getClose(d) > getOpen(d);
+                const fillColor = isIncreasing ? "#4caf50" : "#ff5722";
 
-                  return (
-                    <Bar
-                      key={`volume-${i}`}
-                      x={x - candleWidth / 2}
-                      y={volumeYScale(getVolume(d))}
-                      width={candleWidth}
-                      height={height}
-                      fill={fillColor}
-                      stroke="none"
-                      opacity={0.3} // 设置透明度为0.3
-                    />
-                  );
-                })}
-
-                {/* 绘制蜡烛图 */}
-                {data.map((d, i) => {
-                  const x = xScale(getDate(d));
-                  const openY = yScale(getOpen(d));
-                  const closeY = yScale(getClose(d));
-                  const highY = yScale(getHigh(d));
-                  const lowY = yScale(getLow(d));
-
-                  // 确定蜡烛颜色 - 涨（绿色）跌（红色）
-                  const isIncreasing = getClose(d) > getOpen(d);
-                  const fillColor = isIncreasing ? "#4caf50" : "#ff5722";
-
-                  // 确定是否有关联的新闻点
-                  const hasNewsPoint = newsPoints.some(
-                    np => np.date.getTime() === d.date.getTime()
-                  );
-
-                  return (
-                    <Group key={`candle-${i}`}>
-                      {/* 蜡烛芯线 - 表示当日最高价到最低价 */}
-                      <line
-                        x1={x}
-                        y1={highY}
-                        x2={x}
-                        y2={lowY}
-                        stroke={fillColor}
-                        strokeWidth={2}
-                      />
-
-                      {/* 蜡烛实体 - 表示开盘价到收盘价 */}
-                      <Bar
-                        x={x - candleWidth / 2}
-                        y={Math.min(openY, closeY)}
-                        width={candleWidth}
-                        height={Math.abs(closeY - openY)}
-                        fill={fillColor}
-                        stroke={fillColor}
-                        strokeWidth={1}
-                      />
-
-                      {/* 新闻点标记 */}
-                      {hasNewsPoint && (
-                        <g>
-                          {/* 添加圆形的透明点击区域 (更适合距离检测) */}
-                          <circle
-                            cx={x}
-                            cy={highY - 10}
-                            r={12}
-                            fill="transparent"
-                            style={{ cursor: "pointer" }}
-                          />
-                          {/* 可见的新闻标记 */}
-                          <rect
-                            x={x - 5}
-                            y={highY - 15}
-                            width={10}
-                            height={10}
-                            fill="blue"
-                            stroke="#fff"
-                            strokeWidth={1}
-                            style={{ cursor: "pointer" }}
-                          />
-                        </g>
-                      )}
-                    </Group>
-                  );
-                })}
-
-                {/* 替换左侧Y轴为右侧Y轴，并移除label */}
-                <AxisRight
-                  scale={yScale}
-                  left={innerWidth}
-                  stroke="rgba(0, 0, 0, 0.1)"
-                  tickStroke="rgba(0, 0, 0, 0.5)"
-                  hideTicks
-                />
-
-                {/* 成交量Y轴 - 隐藏 */}
-                {/* 
-                  <AxisRight
-                    scale={volumeYScale}
-                    left={innerWidth}
-                    label="成交量"
-                    hideAxisLine={true}
-                    hideTicks={true}
-                    hideZero={true}
-                    numTicks={0}
+                return (
+                  <Bar
+                    key={`volume-${i}`}
+                    x={x - candleWidth / 2}
+                    y={volumeYScale(getVolume(d))}
+                    width={candleWidth}
+                    height={height}
+                    fill={fillColor}
+                    stroke="none"
+                    opacity={0.3} // 设置透明度为0.3
                   />
-                  */}
+                );
+              })}
 
-                {/* X轴 */}
-                <AxisBottom
-                  hideTicks
-                  scale={xScale}
-                  top={innerHeight}
-                  stroke="rgba(0, 0, 0, 0.1)"
-                  tickStroke="rgba(0, 0, 0, 0.5)"
-                  tickFormat={date => (date as Date).toLocaleDateString()}
-                />
-              </Group>
-            </svg>
+              {/* 绘制蜡烛图 */}
+              {data.map((d, i) => {
+                const x = xScale(getDate(d));
+                const openY = yScale(getOpen(d));
+                const closeY = yScale(getClose(d));
+                const highY = yScale(getHigh(d));
+                const lowY = yScale(getLow(d));
 
-            {/* 工具提示 */}
-            {tooltipData &&
-              tooltipData.newsPoint &&
-              tooltipData.isHoveringNewsPoint && (
-                // @ts-ignore
-                <TooltipWithBounds
-                  key={Math.random()} // 确保更新位置
-                  style={tooltipStyles}
-                  top={tooltipData.y + 10}
-                  left={tooltipData.x + 10}>
+                // 确定蜡烛颜色 - 涨（绿色）跌（红色）
+                const isIncreasing = getClose(d) > getOpen(d);
+                const fillColor = isIncreasing ? "#4caf50" : "#ff5722";
+
+                // 确定是否有关联的新闻点
+                const hasNewsPoint = newsPoints.some(
+                  np => np.date.getTime() === d.date.getTime()
+                );
+
+                return (
+                  <Group key={`candle-${i}`}>
+                    {/* 蜡烛芯线 - 表示当日最高价到最低价 */}
+                    <line
+                      x1={x}
+                      y1={highY}
+                      x2={x}
+                      y2={lowY}
+                      stroke={fillColor}
+                      strokeWidth={2}
+                    />
+
+                    {/* 蜡烛实体 - 表示开盘价到收盘价 */}
+                    <Bar
+                      x={x - candleWidth / 2}
+                      y={Math.min(openY, closeY)}
+                      width={candleWidth}
+                      height={Math.abs(closeY - openY)}
+                      fill={fillColor}
+                      stroke={fillColor}
+                      strokeWidth={1}
+                    />
+
+                    {/* 新闻点标记 */}
+                    {hasNewsPoint && (
+                      <g>
+                        {/* 添加圆形的透明点击区域 (更适合距离检测) */}
+                        <circle
+                          cx={x}
+                          cy={highY - 10}
+                          r={12}
+                          fill="transparent"
+                          style={{ cursor: "pointer" }}
+                        />
+                        {/* 可见的新闻标记 */}
+                        <rect
+                          x={x - 5}
+                          y={highY - 15}
+                          width={10}
+                          height={10}
+                          fill="blue"
+                          stroke="#fff"
+                          strokeWidth={1}
+                          style={{ cursor: "pointer" }}
+                        />
+                      </g>
+                    )}
+                  </Group>
+                );
+              })}
+
+              {/* 替换左侧Y轴为右侧Y轴，并移除label */}
+              <AxisRight
+                scale={yScale}
+                left={innerWidth}
+                stroke="rgba(0, 0, 0, 0.1)"
+                tickStroke="rgba(0, 0, 0, 0.5)"
+                hideTicks
+              />
+
+              {/* 成交量Y轴 - 隐藏 */}
+              {/* 
+              <AxisRight
+                scale={volumeYScale}
+                left={innerWidth}
+                label="成交量"
+                hideAxisLine={true}
+                hideTicks={true}
+                hideZero={true}
+                numTicks={0}
+              />
+              */}
+
+              {/* X轴 - 自定义每三个时间点显示一个标签 */}
+              <AxisBottom
+                hideTicks
+                scale={xScale}
+                top={innerHeight}
+                stroke="rgba(0, 0, 0, 0.5)"
+                tickStroke="rgba(0, 0, 0, 0.5)"
+                tickValues={customTickValues}
+                tickFormat={date => {
+                  const d = date as Date;
+                  return `${d.getMonth() + 1}/${d.getDate()}`;
+                }}
+              />
+            </Group>
+          </svg>
+
+          {/* 工具提示 */}
+          {tooltipData &&
+            tooltipData.newsPoint &&
+            tooltipData.isHoveringNewsPoint && (
+              // @ts-ignore
+              <TooltipWithBounds
+                key={Math.random()} // 确保更新位置
+                style={tooltipStyles}
+                top={tooltipData.y + 10}
+                left={tooltipData.x + 10}>
+                <div>
+                  {/* 只有在悬停在新闻点上时才显示新闻信息 */}
                   <div>
-                    {/* 只有在悬停在新闻点上时才显示新闻信息 */}
-                    <div>
-                      <strong>{tooltipData.newsPoint.title}</strong>
-                      <p>{tooltipData.newsPoint.content}</p>
-                    </div>
+                    <strong>{tooltipData.newsPoint.title}</strong>
+                    <p>{tooltipData.newsPoint.content}</p>
                   </div>
-                </TooltipWithBounds>
-              )}
-          </div>
-
-          <div ref={bottomComRef}>
-            <PriceTip tooltipData={tooltipData} />
-          </div>
-        </Fragment>
-      )}
+                </div>
+              </TooltipWithBounds>
+            )}
+        </div>
+      </div>
     </div>
   );
 };

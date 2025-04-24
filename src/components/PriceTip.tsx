@@ -24,27 +24,37 @@ const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
     return res;
   }, [tooltipData]);
   return (
-    <div className="py-3 pl-16 pr-6 border-t border-t-gray-300">
-      <div className="flex *:w-1/4 flex-wrap">
-        <div className="mb-1">
-          <strong>日期:</strong>
-          {props.date}
+    <div className="py-3 pl-16 pr-6">
+      <div>
+        <div>
+          <span>BTC/ETH</span>
+          <span>·</span>
+          <span>Uniswap</span>
         </div>
-        <div className="mb-1">
-          <strong>开盘价:</strong> {props.open}
+        <div className="flex *:w-1/4 flex-wrap">
+          <div className="mb-1">
+            <strong>date:</strong>
+            {props.date}
+          </div>
+          <div className="mb-1">
+            <strong>O:</strong> {props.open}
+          </div>
+          <div className="mb-1">
+            <strong>收盘价:</strong> {props.close}
+          </div>
+          <div className="mb-1">
+            <strong>最高价:</strong> {props.high}
+          </div>
+          <div className="mb-1">
+            <strong>最低价:</strong> {props.low}
+          </div>
+          <div className="mb-1">
+            <strong>成交量:</strong> {props.volume}
+          </div>
         </div>
-        <div className="mb-1">
-          <strong>收盘价:</strong> {props.close}
-        </div>
-        <div className="mb-1">
-          <strong>最高价:</strong> {props.high}
-        </div>
-        <div className="mb-1">
-          <strong>最低价:</strong> {props.low}
-        </div>
-        <div className="mb-1">
-          <strong>成交量:</strong> {props.volume}
-        </div>
+      </div>
+      <div>
+        
       </div>
     </div>
   );
