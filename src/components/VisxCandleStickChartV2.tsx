@@ -398,15 +398,19 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                     >
                       {yScale.invert(crosshair.y - margin.top).toFixed(2)}
                     </text>
-                    {/* X轴时间标签 */}
+                    {/* X轴时间标签 - 改为自适应宽度 */}
                     {(() => {
                       const xDate = xScale.invert(crosshair.x - margin.left);
+                      const dateText = xDate.toLocaleString();
+                      // 估计文本宽度 (每个字符约8像素) + 两侧各5px内边距
+                      const estimatedWidth = dateText.length * 6; 
+                      
                       return (
                         <>
                           <rect
-                            x={crosshair.x - margin.left - 40}
+                            x={crosshair.x - margin.left - estimatedWidth/2}
                             y={innerHeight}
-                            width={80}
+                            width={estimatedWidth}
                             height={20}
                             fill="rgba(0, 0, 0, 0.7)"
                             rx={3}
@@ -420,7 +424,7 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                             fontSize={10}
                             pointerEvents="none"
                           >
-                            {xDate.toLocaleString()}
+                            {dateText}
                           </text>
                         </>
                       );
