@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect, Fragment } from "react";
 import { scaleLinear, scaleTime } from "@visx/scale";
-import { AxisLeft, AxisRight, AxisBottom } from "@visx/axis"; // 确保导入AxisRight
+import { AxisRight, AxisBottom } from "@visx/axis"; // 确保导入AxisRight
 import { GridRows, GridColumns } from "@visx/grid";
 import { Group } from "@visx/group";
 import { localPoint } from "@visx/event";
@@ -43,7 +43,7 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   height,
   data,
   newsPoints,
-  margin = { top: 10, right: 30, bottom: 50, left: 60 },
+  margin = { top: 10, right: 60, bottom: 50, left: 10 },
 }) => {
   // 状态管理：用于跟踪当前悬停的蜡烛和新闻点
   const [tooltipData, setTooltipData] = useState<TTooltipData>();
@@ -187,7 +187,9 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   };
 
   return (
-    <div className="relative" style={{ height: isMini ? 'auto' : height, width: width }}>
+    <div
+      className="relative"
+      style={{ height: isMini ? "auto" : height, width: width }}>
       <div ref={topComRef}>
         <TopTool toogleMini={() => setIsMini(!isMini)} isMini={isMini} />
       </div>
@@ -305,36 +307,35 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                   );
                 })}
 
-                {/* 替换左侧Y轴为右侧Y轴 */}
+                {/* 替换左侧Y轴为右侧Y轴，并移除label */}
                 <AxisRight
                   scale={yScale}
-                  left={innerWidth} // 这个属性很重要，将轴定位在右侧
-                  label="价格"
-                  stroke="#333"
-                  tickStroke="#333"
-                  labelOffset={40}
+                  left={innerWidth}
+                  stroke="rgba(0, 0, 0, 0.1)"
+                  tickStroke="rgba(0, 0, 0, 0.5)"
+                  hideTicks
                 />
 
                 {/* 成交量Y轴 - 隐藏 */}
                 {/* 
-          <AxisRight
-            scale={volumeYScale}
-            left={innerWidth}
-            label="成交量"
-            hideAxisLine={true}
-            hideTicks={true}
-            hideZero={true}
-            numTicks={0}
-          />
-          */}
+                  <AxisRight
+                    scale={volumeYScale}
+                    left={innerWidth}
+                    label="成交量"
+                    hideAxisLine={true}
+                    hideTicks={true}
+                    hideZero={true}
+                    numTicks={0}
+                  />
+                  */}
 
                 {/* X轴 */}
                 <AxisBottom
+                  hideTicks
                   scale={xScale}
                   top={innerHeight}
-                  label="日期"
-                  stroke="#333"
-                  tickStroke="#333"
+                  stroke="rgba(0, 0, 0, 0.1)"
+                  tickStroke="rgba(0, 0, 0, 0.5)"
                   tickFormat={date => (date as Date).toLocaleDateString()}
                 />
               </Group>

@@ -27,7 +27,7 @@ const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
     <div className="py-3 pl-16 pr-6 border-t border-t-gray-300">
       <div className="flex *:w-1/4 flex-wrap">
         <div className="mb-1">
-          <strong>日期1:</strong>
+          <strong>日期:</strong>
           {props.date}
         </div>
         <div className="mb-1">
