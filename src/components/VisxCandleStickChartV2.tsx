@@ -7,6 +7,7 @@ import { localPoint } from "@visx/event";
 import { TooltipWithBounds, defaultStyles } from "@visx/tooltip";
 import { CandleStickPoint, CandleStickNewsPoint } from "../types/candlestick";
 import { Bar } from "@visx/shape";
+import PriceTip from "./PriceTip";
 
 interface VisxCandleStickChartProps {
   width: number;
@@ -34,7 +35,7 @@ export type TTooltipData = {
   x: number;
   y: number;
   isHoveringNewsPoint: boolean;
-}
+};
 
 const VisxCandleStickChart: React.FC<VisxCandleStickChartProps> = ({
   width,
@@ -169,8 +170,6 @@ const VisxCandleStickChart: React.FC<VisxCandleStickChartProps> = ({
   const handleMouseLeave = () => {
     setTooltipData(undefined);
   };
-
-
 
   return (
     <div style={{ position: "relative" }}>
@@ -320,78 +319,26 @@ const VisxCandleStickChart: React.FC<VisxCandleStickChartProps> = ({
       </svg>
 
       {/* 工具提示 */}
-      {tooltipData && (
-        // @ts-ignore
-        <TooltipWithBounds
-          key={Math.random()} // 确保更新位置
-          style={tooltipStyles}
-          top={tooltipData.y + 10}
-          left={tooltipData.x + 10}>
-          <div>
+      {tooltipData &&
+        tooltipData.newsPoint &&
+        tooltipData.isHoveringNewsPoint && (
+          // @ts-ignore
+          <TooltipWithBounds
+            key={Math.random()} // 确保更新位置
+            style={tooltipStyles}
+            top={tooltipData.y + 10}
+            left={tooltipData.x + 10}>
             <div>
-              <strong>日期:</strong>{" "}
-              {tooltipData.candlePoint?.date.toLocaleDateString()}
-            </div>
-            <div>
-              <strong>开盘价:</strong>{" "}
-              {tooltipData.candlePoint?.open.toFixed(2)}
-            </div>
-            <div>
-              <strong>收盘价:</strong>{" "}
-              {tooltipData.candlePoint?.close.toFixed(2)}
-            </div>
-            <div>
-              <strong>最高价:</strong>{" "}
-              {tooltipData.candlePoint?.high.toFixed(2)}
-            </div>
-            <div>
-              <strong>最低价:</strong> {tooltipData.candlePoint?.low.toFixed(2)}
-            </div>
-            <div>
-              <strong>成交量:</strong>{" "}
-              {((tooltipData.candlePoint?.volume as number) / 1000).toFixed(0)}K
-            </div>
-
-            {/* 只有在悬停在新闻点上时才显示新闻信息 */}
-            {tooltipData.isHoveringNewsPoint && tooltipData.newsPoint && (
-              <div
-                style={{
-                  borderTop: "1px solid #ccc",
-                  marginTop: "8px",
-                  paddingTop: "8px",
-                }}>
+              {/* 只有在悬停在新闻点上时才显示新闻信息 */}
+              <div>
                 <strong>{tooltipData.newsPoint.title}</strong>
                 <p>{tooltipData.newsPoint.content}</p>
               </div>
-            )}
-          </div>
-        </TooltipWithBounds>
-      )}
+            </div>
+          </TooltipWithBounds>
+        )}
 
-      {tooltipData && (
-        <div>
-          <div>
-            <strong>日期:</strong>{" "}
-            {tooltipData.candlePoint?.date.toLocaleDateString()}
-          </div>
-          <div>
-            <strong>开盘价:</strong> {tooltipData.candlePoint?.open.toFixed(2)}
-          </div>
-          <div>
-            <strong>收盘价:</strong> {tooltipData.candlePoint?.close.toFixed(2)}
-          </div>
-          <div>
-            <strong>最高价:</strong> {tooltipData.candlePoint?.high.toFixed(2)}
-          </div>
-          <div>
-            <strong>最低价:</strong> {tooltipData.candlePoint?.low.toFixed(2)}
-          </div>
-          <div>
-            <strong>成交量:</strong>{" "}
-            {((tooltipData.candlePoint?.volume as number) / 1000).toFixed(0)}K
-          </div>
-        </div>
-      )}
+      <PriceTip tooltipData={tooltipData} />
     </div>
   );
 };

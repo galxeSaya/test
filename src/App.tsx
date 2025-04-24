@@ -112,7 +112,7 @@ const App = () => {
         </ErrorBoundary>
       </div>
       
-      <div className="mt-16 text-sm text-gray-600">
+      <div className="mt-32 text-sm text-gray-600">
         <p>提示: 将鼠标悬停在折线上可查看数据点信息，红色方块代表新闻事件，悬停在上面可查看详情。</p>
       </div>
     </div>

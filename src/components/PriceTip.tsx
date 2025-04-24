@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { TTooltipData } from "./VisxCandleStickChartV2";
 
-const PriceTip = ({ tooltipData }: { tooltipData: TTooltipData }) => {
+const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
   const props = useMemo(() => {
     let res = {
       date: "-",
@@ -11,7 +11,7 @@ const PriceTip = ({ tooltipData }: { tooltipData: TTooltipData }) => {
       low: "-",
       volume: "-",
     };
-    if (tooltipData.candlePoint) {
+    if (tooltipData && tooltipData.candlePoint) {
       const data = tooltipData.candlePoint;
       res.date = data.date.toLocaleDateString() || res.date;
       res.open = data.open.toFixed(2) || res.open;
@@ -24,10 +24,10 @@ const PriceTip = ({ tooltipData }: { tooltipData: TTooltipData }) => {
     return res;
   }, [tooltipData]);
   return (
-    <div className="flex">
-      <div>
+    <div className="mt-3">
+      <div className="flex *:w-1/4 flex-wrap">
         <div className="mb-1">
-          <strong>日期:</strong>
+          <strong>日期1:</strong>
           {props.date}
         </div>
         <div className="mb-1">
