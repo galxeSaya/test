@@ -63,5 +63,5 @@ export function generateNewsPoints(data: CandleStickPoint[], count: number): Can
 }
 
 // 生成示例数据
-export const sampleCandleData = generateCandleStickData(30);
+export const sampleCandleData = generateCandleStickData(200);
 export const sampleCandleNewsPoints = generateNewsPoints(sampleCandleData, 5);

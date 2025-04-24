@@ -122,13 +122,23 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   const xBandwidth = innerWidth / data.length;
   const candleWidth = Math.max(xBandwidth * 0.6, 1);
 
-  // 创建用于X轴的自定义刻度数组，每三个点显示一个
+  // 根据图表宽度自适应计算X轴时间标签
   const customTickValues = useMemo(() => {
+    // 估计每个标签需要的最小宽度（像素）
+    const minWidthPerLabel = 80; 
+    
+    // 计算可以容纳的标签数量
+    const maxLabels = Math.floor(innerWidth / minWidthPerLabel);
+    
+    // 计算每隔多少个点显示一个标签
+    const interval = Math.max(1, Math.ceil(data.length / maxLabels));
+    
+    // 生成标签值数组
     return data
-      .filter((_, i) => i % 3 === 0) // 每隔三个点取一个
-      .map(d => getDate(d)); // 映射为日期
-  }, [data]);
-
+      .filter((_, i) => i % interval === 0)
+      .map(d => getDate(d));
+  }, [data, innerWidth]);
+  
   // 查找数据点对应的新闻点
   const getNewsPointForDate = (
     date: Date
@@ -352,15 +362,15 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
               />
               */}
 
-              {/* X轴 - 自定义每三个时间点显示一个标签 */}
+              {/* X轴 - 使用自适应计算的标签 */}
               <AxisBottom
                 hideTicks
                 scale={xScale}
                 top={innerHeight}
-                stroke="rgba(0, 0, 0, 0.1)"
+                stroke="rgba(0, 0, 0, 0.5)"
                 tickStroke="rgba(0, 0, 0, 0.5)"
                 tickValues={customTickValues}
-                tickFormat={date => {
+                tickFormat={(date) => {
                   const d = date as Date;
                   return `${d.getMonth() + 1}/${d.getDate()}`;
                 }}
