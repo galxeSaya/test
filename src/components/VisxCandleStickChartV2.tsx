@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect, Fragment } from "react";
+import React, { useMemo, useState } from "react";
 import { scaleLinear, scaleTime } from "@visx/scale";
 import { AxisRight, AxisBottom } from "@visx/axis";
 import { GridRows, GridColumns } from "@visx/grid";
@@ -9,6 +9,11 @@ import { CandleStickPoint, CandleStickNewsPoint } from "../types/candlestick";
 import { Bar, Line } from "@visx/shape"; // 添加Line导入
 import PriceTip from "./PriceTip";
 import TopTool from "./TopTool";
+import clsx from "clsx";
+
+export const INCREASE_COLOR = "#4caf50"; // 绿色
+export const DECREASE_COLOR = "#ff5722"; // 红色
+export const DEFAULT_COLOR = "#383838"; // 灰色
 
 interface VisxCandleStickChartProps {
   width: number;
@@ -48,8 +53,8 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   // 状态管理：用于跟踪当前悬停的蜡烛和新闻点
   const [tooltipData, setTooltipData] = useState<TTooltipData>();
   const [chartHeight, setChartHeight] = useState(height);
-  const bottomComRef = useRef<HTMLDivElement>(null);
-  const topComRef = useRef<HTMLDivElement>(null);
+  // const bottomComRef = useRef<HTMLDivElement>(null);
+  // const topComRef = useRef<HTMLDivElement>(null);
   const [isMini, setIsMini] = useState(false);
 
   // 计算图表区域尺寸
@@ -57,13 +62,13 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   const innerHeight = chartHeight - margin.top - margin.bottom;
 
   // 使用 useEffect 测量 bottomCom 高度并调整图表高度
-  useEffect(() => {
+  /* useEffect(() => {
     if (bottomComRef.current) {
       const bottomComHeight = bottomComRef.current.offsetHeight;
       // 从总高度中减去 bottomCom 高度，留出一些额外空间
       setChartHeight(height - bottomComHeight);
     }
-  }, [height, tooltipData]);
+  }, [height, tooltipData]); */
 
   // 数据访问器
   const getDate = (d: CandleStickPoint) => d.date;
@@ -134,7 +139,9 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   };
 
   // 添加状态跟踪鼠标位置
-  const [crosshair, setCrosshair] = useState<{x: number, y: number} | null>(null);
+  const [crosshair, setCrosshair] = useState<{ x: number; y: number } | null>(
+    null
+  );
 
   // 处理鼠标移动事件
   const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
@@ -201,137 +208,140 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   };
 
   return (
-    <div
-      className="relative"
-      style={{ height: isMini ? "auto" : height, width: width }}>
-      <div ref={topComRef}>
-        <TopTool toogleMini={() => setIsMini(!isMini)} isMini={isMini} />
-      </div>
-      {!isMini && (
-        <Fragment>
-          <div style={{ height: chartHeight }}>
-            <svg
-              width={width}
-              height={chartHeight}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}>
-              <Group left={margin.left} top={margin.top}>
-                {/* 网格线 */}
-                <GridRows
-                  scale={yScale}
-                  width={innerWidth}
-                  strokeDasharray="3,3"
-                  stroke="#e0e0e0"
-                />
-                <GridColumns
-                  scale={xScale}
-                  height={innerHeight}
-                  strokeDasharray="3,3"
-                  stroke="#e0e0e0"
-                />
+    <div>
+      <TopTool toogleMini={() => setIsMini(!isMini)} isMini={isMini} />
+      <div
+        className={clsx("relative", {
+          hidden: isMini,
+        })}
+        style={{ height: isMini ? "auto" : height, width: width }}>
+        <div className="absolute top-0 left-0 right-20 h-fit">
+          <PriceTip tooltipData={tooltipData} />
+        </div>
+        <div style={{ height: chartHeight }} className="relative z-[1]">
+          <svg
+            width={width}
+            height={chartHeight}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}>
+            <Group left={margin.left} top={margin.top}>
+              {/* 网格线 */}
+              <GridRows
+                scale={yScale}
+                width={innerWidth}
+                strokeDasharray="3,3"
+                stroke="#e0e0e0"
+              />
+              <GridColumns
+                scale={xScale}
+                height={innerHeight}
+                strokeDasharray="3,3"
+                stroke="#e0e0e0"
+              />
 
-                {/* 绘制成交量柱状图 - 先绘制这个，让其在K线图底下 */}
-                {data.map((d, i) => {
-                  const x = xScale(getDate(d));
-                  const height = innerHeight - volumeYScale(getVolume(d));
+              {/* 绘制成交量柱状图 - 先绘制这个，让其在K线图底下 */}
+              {data.map((d, i) => {
+                const x = xScale(getDate(d));
+                const height = innerHeight - volumeYScale(getVolume(d));
 
-                  // 使用与蜡烛图相同的颜色策略
-                  const isIncreasing = getClose(d) > getOpen(d);
-                  const fillColor = isIncreasing ? "#4caf50" : "#ff5722";
+                // 使用与蜡烛图相同的颜色策略
+                const isIncreasing = getClose(d) > getOpen(d);
+                const fillColor = isIncreasing ? INCREASE_COLOR : DECREASE_COLOR;
 
-                  return (
-                    <Bar
-                      key={`volume-${i}`}
-                      x={x - candleWidth / 2}
-                      y={volumeYScale(getVolume(d))}
-                      width={candleWidth}
-                      height={height}
-                      fill={fillColor}
-                      stroke="none"
-                      opacity={0.3} // 设置透明度为0.3
+                return (
+                  <Bar
+                    key={`volume-${i}`}
+                    x={x - candleWidth / 2}
+                    y={volumeYScale(getVolume(d))}
+                    width={candleWidth}
+                    height={height}
+                    fill={fillColor}
+                    stroke="none"
+                    opacity={0.3} // 设置透明度为0.3
+                  />
+                );
+              })}
+
+              {/* 绘制蜡烛图 */}
+              {data.map((d, i) => {
+                const x = xScale(getDate(d));
+                const openY = yScale(getOpen(d));
+                const closeY = yScale(getClose(d));
+                const highY = yScale(getHigh(d));
+                const lowY = yScale(getLow(d));
+
+                // 确定蜡烛颜色 - 涨（绿色）跌（红色）
+                const isIncreasing = getClose(d) > getOpen(d);
+                const fillColor = isIncreasing ? INCREASE_COLOR : DECREASE_COLOR;
+
+                // 确定是否有关联的新闻点
+                const hasNewsPoint = newsPoints.some(
+                  np => np.date.getTime() === d.date.getTime()
+                );
+
+                return (
+                  <Group key={`candle-${i}`}>
+                    {/* 蜡烛芯线 - 表示当日最高价到最低价 */}
+                    <line
+                      x1={x}
+                      y1={highY}
+                      x2={x}
+                      y2={lowY}
+                      stroke={fillColor}
+                      strokeWidth={2}
                     />
-                  );
-                })}
 
-                {/* 绘制蜡烛图 */}
-                {data.map((d, i) => {
-                  const x = xScale(getDate(d));
-                  const openY = yScale(getOpen(d));
-                  const closeY = yScale(getClose(d));
-                  const highY = yScale(getHigh(d));
-                  const lowY = yScale(getLow(d));
+                    {/* 蜡烛实体 - 表示开盘价到收盘价 */}
+                    <Bar
+                      x={x - candleWidth / 2}
+                      y={Math.min(openY, closeY)}
+                      width={candleWidth}
+                      height={Math.abs(closeY - openY)}
+                      fill={fillColor}
+                      stroke={fillColor}
+                      strokeWidth={1}
+                    />
 
-                  // 确定蜡烛颜色 - 涨（绿色）跌（红色）
-                  const isIncreasing = getClose(d) > getOpen(d);
-                  const fillColor = isIncreasing ? "#4caf50" : "#ff5722";
+                    {/* 新闻点标记 */}
+                    {hasNewsPoint && (
+                      <g>
+                        {/* 添加圆形的透明点击区域 (更适合距离检测) */}
+                        <circle
+                          cx={x}
+                          cy={highY - 10}
+                          r={12}
+                          fill="transparent"
+                          style={{ cursor: "pointer" }}
+                        />
+                        {/* 可见的新闻标记 */}
+                        <rect
+                          x={x - 5}
+                          y={highY - 15}
+                          width={10}
+                          height={10}
+                          fill="blue"
+                          stroke="#fff"
+                          strokeWidth={1}
+                          style={{ cursor: "pointer" }}
+                        />
+                      </g>
+                    )}
+                  </Group>
+                );
+              })}
 
-                  // 确定是否有关联的新闻点
-                  const hasNewsPoint = newsPoints.some(
-                    np => np.date.getTime() === d.date.getTime()
-                  );
+              {/* 替换左侧Y轴为右侧Y轴，并移除label */}
+              <AxisRight
+                scale={yScale}
+                left={innerWidth}
+                stroke="rgba(0, 0, 0, 0.1)"
+                tickStroke="rgba(0, 0, 0, 0.5)"
+                hideTicks
+                tickFormat={value => `$${value}`}
+              />
 
-                  return (
-                    <Group key={`candle-${i}`}>
-                      {/* 蜡烛芯线 - 表示当日最高价到最低价 */}
-                      <line
-                        x1={x}
-                        y1={highY}
-                        x2={x}
-                        y2={lowY}
-                        stroke={fillColor}
-                        strokeWidth={2}
-                      />
-
-                      {/* 蜡烛实体 - 表示开盘价到收盘价 */}
-                      <Bar
-                        x={x - candleWidth / 2}
-                        y={Math.min(openY, closeY)}
-                        width={candleWidth}
-                        height={Math.abs(closeY - openY)}
-                        fill={fillColor}
-                        stroke={fillColor}
-                        strokeWidth={1}
-                      />
-
-                      {/* 新闻点标记 */}
-                      {hasNewsPoint && (
-                        <g>
-                          {/* 添加圆形的透明点击区域 (更适合距离检测) */}
-                          <circle
-                            cx={x}
-                            cy={highY - 10}
-                            r={12}
-                            fill="transparent"
-                            style={{ cursor: "pointer" }}
-                          />
-                          {/* 可见的新闻标记 */}
-                          <rect
-                            x={x - 5}
-                            y={highY - 15}
-                            width={10}
-                            height={10}
-                            fill="blue"
-                            stroke="#fff"
-                            strokeWidth={1}
-                            style={{ cursor: "pointer" }}
-                          />
-                        </g>
-                      )}
-                    </Group>
-                  );
-                })}
-
-                {/* 替换左侧Y轴为右侧Y轴，并移除label */}
-                <AxisRight
-                  scale={yScale}
-                  left={innerWidth}
-                  stroke="rgba(0, 0, 0, 0.1)"
-                  tickStroke="rgba(0, 0, 0, 0.5)"
-                  hideTicks
-                />
-
-                {/* 成交量Y轴 - 隐藏 */}
-                {/* 
+              {/* 成交量Y轴 - 隐藏 */}
+              {/* 
               <AxisRight
                 scale={volumeYScale}
                 left={innerWidth}
@@ -343,133 +353,127 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
               />
               */}
 
-                {/* X轴 - 自定义每三个时间点显示一个标签 */}
-                <AxisBottom
-                  hideTicks
-                  scale={xScale}
-                  top={innerHeight}
-                  stroke="rgba(0, 0, 0, 0.1)"
-                  tickStroke="rgba(0, 0, 0, 0.5)"
-                  tickValues={customTickValues}
-                  tickFormat={(date) => {
-                    const d = date as Date;
-                    return `${d.getMonth() + 1}/${d.getDate()}`;
-                  }}
-                />
+              {/* X轴 - 自定义每三个时间点显示一个标签 */}
+              <AxisBottom
+                hideTicks
+                scale={xScale}
+                top={innerHeight}
+                stroke="rgba(0, 0, 0, 0.1)"
+                tickStroke="rgba(0, 0, 0, 0.5)"
+                tickValues={customTickValues}
+                tickFormat={date => {
+                  const d = date as Date;
+                  return `${d.getMonth() + 1}/${d.getDate()}`;
+                }}
+              />
 
-                {/* 渲染十字线 */}
-                {crosshair && (
-                  <>
-                    {/* 垂直线 */}
-                    <Line
-                      from={{ x: crosshair.x - margin.left, y: 0 }}
-                      to={{ x: crosshair.x - margin.left, y: innerHeight }}
-                      stroke="rgba(0, 0, 0, 0.3)"
-                      strokeWidth={1}
-                      strokeDasharray="3,3"
-                      pointerEvents="none"
-                    />
-                    {/* 水平线 */}
-                    <Line
-                      from={{ x: 0, y: crosshair.y - margin.top }}
-                      to={{ x: innerWidth, y: crosshair.y - margin.top }}
-                      stroke="rgba(0, 0, 0, 0.3)"
-                      strokeWidth={1}
-                      strokeDasharray="3,3"
-                      pointerEvents="none"
-                    />
-                    {/* Y轴价格标签 */}
-                    <rect
-                      x={innerWidth}
-                      y={crosshair.y - margin.top - 10}
-                      width={margin.right}
-                      height={20}
-                      fill="rgba(0, 0, 0, 0.7)"
-                      rx={3}
-                    />
-                    <text
-                      x={innerWidth + margin.right / 2}
-                      y={crosshair.y - margin.top}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill="white"
-                      fontSize={10}
-                      pointerEvents="none"
-                    >
-                      {yScale.invert(crosshair.y - margin.top).toFixed(2)}
-                    </text>
-                    {/* X轴时间标签 - 显示对应数据点的时间 */}
-                    {(() => {
-                      // 找到最近的数据点
-                      const x0 = xScale.invert(crosshair.x - margin.left);
-                      const index = data.reduce((prev, curr, i) => {
-                        return Math.abs(+getDate(curr) - +x0) <
-                          Math.abs(+getDate(data[prev]) - +x0)
-                          ? i
-                          : prev;
-                      }, 0);
-                      
-                      // 使用实际数据点的时间
-                      const pointDate = data[index].date;
-                      const dateText = pointDate.toLocaleString();
-                      // 估计文本宽度 + 两侧各5px内边距
-                      const estimatedWidth = dateText.length * 6; 
-                      
-                      return (
-                        <>
-                          <rect
-                            x={crosshair.x - margin.left - estimatedWidth/2}
-                            y={innerHeight}
-                            width={estimatedWidth}
-                            height={20}
-                            fill="rgba(0, 0, 0, 0.7)"
-                            rx={3}
-                          />
-                          <text
-                            x={crosshair.x - margin.left}
-                            y={innerHeight + 10}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            fill="white"
-                            fontSize={10}
-                            pointerEvents="none"
-                          >
-                            {dateText}
-                          </text>
-                        </>
-                      );
-                    })()}
-                  </>
-                )}
-              </Group>
-            </svg>
+              {/* 渲染十字线 */}
+              {crosshair && (
+                <>
+                  {/* 垂直线 */}
+                  <Line
+                    from={{ x: crosshair.x - margin.left, y: 0 }}
+                    to={{ x: crosshair.x - margin.left, y: innerHeight }}
+                    stroke="rgba(0, 0, 0, 0.3)"
+                    strokeWidth={1}
+                    strokeDasharray="3,3"
+                    pointerEvents="none"
+                  />
+                  {/* 水平线 */}
+                  <Line
+                    from={{ x: 0, y: crosshair.y - margin.top }}
+                    to={{ x: innerWidth, y: crosshair.y - margin.top }}
+                    stroke="rgba(0, 0, 0, 0.3)"
+                    strokeWidth={1}
+                    strokeDasharray="3,3"
+                    pointerEvents="none"
+                  />
+                  {/* Y轴价格标签 */}
+                  <rect
+                    x={innerWidth}
+                    y={crosshair.y - margin.top - 10}
+                    width={margin.right}
+                    height={20}
+                    fill="rgba(0, 0, 0, 0.7)"
+                    rx={3}
+                  />
+                  <text
+                    x={innerWidth + margin.right / 2}
+                    y={crosshair.y - margin.top}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="white"
+                    fontSize={10}
+                    pointerEvents="none">
+                    {yScale.invert(crosshair.y - margin.top).toFixed(2)}
+                  </text>
+                  {/* X轴时间标签 - 显示对应数据点的时间 */}
+                  {(() => {
+                    // 找到最近的数据点
+                    const x0 = xScale.invert(crosshair.x - margin.left);
+                    const index = data.reduce((prev, curr, i) => {
+                      return Math.abs(+getDate(curr) - +x0) <
+                        Math.abs(+getDate(data[prev]) - +x0)
+                        ? i
+                        : prev;
+                    }, 0);
 
-            {/* 工具提示 */}
-            {tooltipData &&
-              tooltipData.newsPoint &&
-              tooltipData.isHoveringNewsPoint && (
-                // @ts-ignore
-                <TooltipWithBounds
-                  key={Math.random()} // 确保更新位置
-                  style={tooltipStyles}
-                  top={tooltipData.y + 10}
-                  left={tooltipData.x + 10}>
-                  <div>
-                    {/* 只有在悬停在新闻点上时才显示新闻信息 */}
-                    <div>
-                      <strong>{tooltipData.newsPoint.title}</strong>
-                      <p>{tooltipData.newsPoint.content}</p>
-                    </div>
-                  </div>
-                </TooltipWithBounds>
+                    // 使用实际数据点的时间
+                    const pointDate = data[index].date;
+                    const dateText = pointDate.toLocaleString();
+                    // 估计文本宽度 + 两侧各5px内边距
+                    const estimatedWidth = dateText.length * 6;
+
+                    return (
+                      <>
+                        <rect
+                          x={crosshair.x - margin.left - estimatedWidth / 2}
+                          y={innerHeight}
+                          width={estimatedWidth}
+                          height={20}
+                          fill="rgba(0, 0, 0, 0.7)"
+                          rx={3}
+                        />
+                        <text
+                          x={crosshair.x - margin.left}
+                          y={innerHeight + 10}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="white"
+                          fontSize={10}
+                          pointerEvents="none">
+                          {dateText}
+                        </text>
+                      </>
+                    );
+                  })()}
+                </>
               )}
-          </div>
+            </Group>
+          </svg>
 
-          <div ref={bottomComRef}>
-            <PriceTip tooltipData={tooltipData} />
-          </div>
-        </Fragment>
-      )}
+          {/* 工具提示 */}
+          {tooltipData &&
+            tooltipData.newsPoint &&
+            tooltipData.isHoveringNewsPoint && (
+              // @ts-ignore
+              <TooltipWithBounds
+                key={Math.random()} // 确保更新位置
+                style={tooltipStyles}
+                top={tooltipData.y + 10}
+                left={tooltipData.x + 10}>
+                <div>
+                  {/* 只有在悬停在新闻点上时才显示新闻信息 */}
+                  <div>
+                    <strong>{tooltipData.newsPoint.title}</strong>
+                    <p>{tooltipData.newsPoint.content}</p>
+                  </div>
+                </div>
+              </TooltipWithBounds>
+            )}
+        </div>
+
+      </div>
     </div>
   );
 };

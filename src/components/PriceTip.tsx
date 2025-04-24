@@ -1,60 +1,66 @@
-import { useMemo } from "react";
-import { TTooltipData } from "./VisxCandleStickChartV2";
+import { useMemo, useState } from "react";
+import { DECREASE_COLOR, DEFAULT_COLOR, INCREASE_COLOR, TTooltipData } from "./VisxCandleStickChartV2";
 
 const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
+  const [priceColor, setPriceColor] = useState(DEFAULT_COLOR);
+
   const props = useMemo(() => {
+    setPriceColor(DEFAULT_COLOR);
     let res = {
-      date: "-",
-      open: "-",
-      close: "-",
-      high: "-",
-      low: "-",
+      O: "-",
+      H: "-",
+      L: "-",
+      C: "-",
       volume: "-",
     };
     if (tooltipData && tooltipData.candlePoint) {
       const data = tooltipData.candlePoint;
-      res.date = data.date.toLocaleDateString() || res.date;
-      res.open = data.open.toFixed(2) || res.open;
-      res.close = data.close.toFixed(2) || res.close;
-      res.high = data.high.toFixed(2) || res.high;
-      res.low = data.low.toFixed(2) || res.low;
+      res.O = data.open.toFixed(2) || res.O;
+      res.H = data.high.toFixed(2) || res.H;
+      res.L = data.low.toFixed(2) || res.L;
+      res.C = data.close.toFixed(2) || res.C;
       res.volume =
         ((data.volume as number) / 1000).toFixed(0) + "K" || res.volume;
+      setPriceColor(res.C > res.O ? INCREASE_COLOR : DECREASE_COLOR)
     }
     return res;
   }, [tooltipData]);
+
   return (
-    <div className="py-3 pl-16 pr-6">
-      <div>
-        <div>
+    <div className="pt-6 p-6 flex flex-col gap-1">
+      <div className="flex flex-wrap justify-between items-center">
+        <div className="flex items-center gap-3">
           <span>BTC/ETH</span>
-          <span>·</span>
+          <div className="w-1 h-1 rounded-full bg-slate-400"></div>
           <span>Uniswap</span>
         </div>
-        <div className="flex *:w-1/4 flex-wrap">
-          <div className="mb-1">
-            <strong>date:</strong>
-            {props.date}
+        <div className="flex gap-4 *:flex *:gap-1">
+          {
+            Object.entries(props).filter(([key]) => key !== 'volume').map(([key, value]) => (
+              <div key={key} className="min-w-20">
+                <strong>{key}</strong>
+                <span style={{ color: priceColor }}>{value}</span>
+              </div>
+            ))
+          }
+          {/* <div>
+            <strong>O</strong><span>{props.open}</span>
           </div>
-          <div className="mb-1">
-            <strong>O:</strong> {props.open}
+          <div>
+            <strong>H</strong><span>{props.high}</span>
           </div>
-          <div className="mb-1">
-            <strong>收盘价:</strong> {props.close}
+          <div>
+            <strong>L</strong><span>{props.low}</span>
           </div>
-          <div className="mb-1">
-            <strong>最高价:</strong> {props.high}
-          </div>
-          <div className="mb-1">
-            <strong>最低价:</strong> {props.low}
-          </div>
-          <div className="mb-1">
-            <strong>成交量:</strong> {props.volume}
-          </div>
+          <div>
+            <strong>C</strong><span>{props.close}</span>
+          </div> */}
         </div>
       </div>
-      <div>
-        
+      <div className="flex gap-4 *:flex *:gap-1">
+        <div>
+          <strong>Volume</strong><span style={{ color: priceColor }}>{props.volume}</span>
+        </div>
       </div>
     </div>
   );
