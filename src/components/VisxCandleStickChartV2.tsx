@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback, WheelEvent } from "react";
 import { scaleLinear, scaleTime } from "@visx/scale";
 import { AxisRight, AxisBottom } from "@visx/axis";
 import { GridRows, GridColumns } from "@visx/grid";
@@ -10,6 +10,13 @@ import { Bar, Line } from "@visx/shape"; // 添加Line导入
 import PriceTip from "./PriceTip";
 import TopTool from "./TopTool";
 import clsx from "clsx";
+
+// 默认显示的数据点数量
+const DEFAULT_VISIBLE_ITEMS = 50;
+// 缩放系数
+const ZOOM_FACTOR = 0.1;
+// 最小可见数据点数量
+const MIN_VISIBLE_ITEMS = 10;
 
 export const INCREASE_COLOR = "#4caf50"; // 绿色
 export const DECREASE_COLOR = "#ff5722"; // 红色
@@ -53,22 +60,37 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   // 状态管理：用于跟踪当前悬停的蜡烛和新闻点
   const [tooltipData, setTooltipData] = useState<TTooltipData>();
   const [chartHeight, setChartHeight] = useState(height);
-  // const bottomComRef = useRef<HTMLDivElement>(null);
-  // const topComRef = useRef<HTMLDivElement>(null);
   const [isMini, setIsMini] = useState(false);
+
+  // 数据范围状态 - 初始化为显示末尾的50个数据点
+  const [visibleRange, setVisibleRange] = useState({
+    startIndex: Math.max(0, data.length - DEFAULT_VISIBLE_ITEMS),
+    endIndex: data.length - 1
+  });
 
   // 计算图表区域尺寸
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = chartHeight - margin.top - margin.bottom;
 
-  // 使用 useEffect 测量 bottomCom 高度并调整图表高度
-  /* useEffect(() => {
-    if (bottomComRef.current) {
-      const bottomComHeight = bottomComRef.current.offsetHeight;
-      // 从总高度中减去 bottomCom 高度，留出一些额外空间
-      setChartHeight(height - bottomComHeight);
-    }
-  }, [height, tooltipData]); */
+  // 过滤数据，只显示可见范围内的数据
+  const visibleData = useMemo(() => {
+    return data.slice(visibleRange.startIndex, visibleRange.endIndex + 1);
+  }, [data, visibleRange.startIndex, visibleRange.endIndex]);
+
+  // 过滤对应的新闻点
+  const visibleNewsPoints = useMemo(() => {
+    if (!visibleData.length) return [];
+    
+    const startDate = visibleData[0].date.getTime();
+    const endDate = visibleData[visibleData.length - 1].date.getTime();
+    
+    return newsPoints.filter(
+      newsPoint => {
+        const newsTime = newsPoint.date.getTime();
+        return newsTime >= startDate && newsTime <= endDate;
+      }
+    );
+  }, [visibleData, newsPoints]);
 
   // 数据访问器
   const getDate = (d: CandleStickPoint) => d.date;
@@ -78,52 +100,62 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   const getLow = (d: CandleStickPoint) => d.low;
   const getVolume = (d: CandleStickPoint) => d.volume;
 
-  // 创建比例尺
+  // 创建比例尺 - 使用visibleData而不是全部数据
   const xScale = useMemo(() => {
+    if (!visibleData.length) return scaleTime({ domain: [new Date(), new Date()], range: [0, innerWidth] });
+    
     // 计算时间范围
-    const minDate = Math.min(...data.map(d => +getDate(d)));
-    const maxDate = Math.max(...data.map(d => +getDate(d)));
+    const minDate = Math.min(...visibleData.map(d => +getDate(d)));
+    const maxDate = Math.max(...visibleData.map(d => +getDate(d)));
 
     // 添加左右两侧的间隙，确保最边缘的蜡烛完全显示
     const timeRange = maxDate - minDate;
-    const padding = timeRange / (data.length * 2); // 半个蜡烛的时间宽度
+    const padding = timeRange / (visibleData.length * 2); // 半个蜡烛的时间宽度
 
     return scaleTime({
       domain: [new Date(minDate - padding), new Date(maxDate + padding)],
       range: [0, innerWidth],
     });
-  }, [data, innerWidth]);
+  }, [visibleData, innerWidth]);
 
   const yScale = useMemo(
-    () =>
-      scaleLinear({
+    () => {
+      if (!visibleData.length) return scaleLinear({ domain: [0, 100], range: [innerHeight, 0] });
+      
+      return scaleLinear({
         domain: [
-          Math.min(...data.map(d => getLow(d))) * 0.99,
-          Math.max(...data.map(d => getHigh(d))) * 1.01,
+          Math.min(...visibleData.map(d => getLow(d))) * 0.99,
+          Math.max(...visibleData.map(d => getHigh(d))) * 1.01,
         ],
         range: [innerHeight, 0],
         nice: true,
-      }),
-    [data, innerHeight]
+      });
+    },
+    [visibleData, innerHeight]
   );
 
   // 成交量的Y轴比例尺 - 只使用图表底部约20%的区域显示成交量
   const volumeYScale = useMemo(
-    () =>
-      scaleLinear({
-        domain: [0, Math.max(...data.map(d => getVolume(d))) * 1.1],
+    () => {
+      if (!visibleData.length) return scaleLinear({ domain: [0, 100], range: [innerHeight, innerHeight * 0.8] });
+      
+      return scaleLinear({
+        domain: [0, Math.max(...visibleData.map(d => getVolume(d))) * 1.1],
         range: [innerHeight, innerHeight * 0.8], // 只用底部20%的空间
         nice: true,
-      }),
-    [data, innerHeight]
+      });
+    },
+    [visibleData, innerHeight]
   );
 
   // 计算蜡烛宽度
-  const xBandwidth = innerWidth / data.length;
+  const xBandwidth = innerWidth / (visibleData.length || 1);
   const candleWidth = Math.max(xBandwidth * 0.6, 1);
 
   // 根据图表宽度自适应计算X轴时间标签
   const customTickValues = useMemo(() => {
+    if (!visibleData.length) return [];
+    
     // 估计每个标签需要的最小宽度（像素）
     const minWidthPerLabel = 80; 
     
@@ -131,19 +163,19 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     const maxLabels = Math.floor(innerWidth / minWidthPerLabel);
     
     // 计算每隔多少个点显示一个标签
-    const interval = Math.max(1, Math.ceil(data.length / maxLabels));
+    const interval = Math.max(1, Math.ceil(visibleData.length / maxLabels));
     
     // 生成标签值数组
-    return data
+    return visibleData
       .filter((_, i) => i % interval === 0)
       .map(d => getDate(d));
-  }, [data, innerWidth]);
+  }, [visibleData, innerWidth]);
   
   // 查找数据点对应的新闻点
   const getNewsPointForDate = (
     date: Date
   ): CandleStickNewsPoint | undefined => {
-    return newsPoints.find(
+    return visibleNewsPoints.find(
       newsPoint => newsPoint.date.getTime() === date.getTime()
     );
   };
@@ -152,6 +184,50 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   const [crosshair, setCrosshair] = useState<{ x: number; y: number } | null>(
     null
   );
+
+  // 处理鼠标滚轮事件
+  const handleWheel = useCallback((event: WheelEvent<SVGSVGElement>) => {
+    event.preventDefault();
+    
+    // 确定缩放方向：向下滚动(正deltaY)=缩小，向上滚动(负deltaY)=放大
+    const isZoomIn = event.deltaY < 0;
+    
+    // 获取鼠标在图表上的位置
+    const { x } = localPoint(event) || { x: 0 };
+    const xPos = (x - margin.left) / innerWidth; // 归一化位置 (0-1)
+    
+    // 计算当前可见数据点数量
+    const visibleCount = visibleRange.endIndex - visibleRange.startIndex + 1;
+    
+    // 计算新的可见数据点数量
+    let newVisibleCount = isZoomIn 
+      ? Math.max(MIN_VISIBLE_ITEMS, Math.floor(visibleCount * (1 - ZOOM_FACTOR)))
+      : Math.min(data.length, Math.ceil(visibleCount * (1 + ZOOM_FACTOR)));
+    
+    // 确保在数据范围内
+    newVisibleCount = Math.min(newVisibleCount, data.length);
+    
+    // 计算新的startIndex和endIndex，保持鼠标位置尽量固定
+    const centerIndex = visibleRange.startIndex + Math.floor(xPos * visibleCount);
+    let newStartIndex = Math.floor(centerIndex - xPos * newVisibleCount);
+    let newEndIndex = newStartIndex + newVisibleCount - 1;
+    
+    // 边界检查
+    if (newStartIndex < 0) {
+      newStartIndex = 0;
+      newEndIndex = Math.min(data.length - 1, newVisibleCount - 1);
+    }
+    
+    if (newEndIndex >= data.length) {
+      newEndIndex = data.length - 1;
+      newStartIndex = Math.max(0, newEndIndex - newVisibleCount + 1);
+    }
+    
+    setVisibleRange({
+      startIndex: newStartIndex,
+      endIndex: newEndIndex
+    });
+  }, [data.length, innerWidth, margin.left, visibleRange]);
 
   // 处理鼠标移动事件
   const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
@@ -173,14 +249,16 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
 
     // 计算最近的数据点
     const x0 = xScale.invert(x - margin.left);
-    const index = data.reduce((prev, curr, i) => {
+    
+    // 使用可见数据查找最近的点
+    const index = visibleData.reduce((prev, curr, i) => {
       return Math.abs(+getDate(curr) - +x0) <
-        Math.abs(+getDate(data[prev]) - +x0)
+        Math.abs(+getDate(visibleData[prev]) - +x0)
         ? i
         : prev;
     }, 0);
 
-    const candlePoint = data[index];
+    const candlePoint = visibleData[index];
     const newsPoint = getNewsPointForDate(candlePoint.date);
 
     // 默认假设不是在新闻点上悬停
@@ -233,7 +311,8 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
             width={width}
             height={chartHeight}
             onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}>
+            onMouseLeave={handleMouseLeave}
+            onWheel={handleWheel}>
             <Group left={margin.left} top={margin.top}>
               {/* 网格线 */}
               <GridRows
@@ -250,7 +329,7 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
               />
 
               {/* 绘制成交量柱状图 - 先绘制这个，让其在K线图底下 */}
-              {data.map((d, i) => {
+              {visibleData.map((d, i) => {
                 const x = xScale(getDate(d));
                 const height = innerHeight - volumeYScale(getVolume(d));
 
@@ -273,7 +352,7 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
               })}
 
               {/* 绘制蜡烛图 */}
-              {data.map((d, i) => {
+              {visibleData.map((d, i) => {
                 const x = xScale(getDate(d));
                 const openY = yScale(getOpen(d));
                 const closeY = yScale(getClose(d));
@@ -420,15 +499,15 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                   {(() => {
                     // 找到最近的数据点
                     const x0 = xScale.invert(crosshair.x - margin.left);
-                    const index = data.reduce((prev, curr, i) => {
+                    const index = visibleData.reduce((prev, curr, i) => {
                       return Math.abs(+getDate(curr) - +x0) <
-                        Math.abs(+getDate(data[prev]) - +x0)
+                        Math.abs(+getDate(visibleData[prev]) - +x0)
                         ? i
                         : prev;
                     }, 0);
 
                     // 使用实际数据点的时间
-                    const pointDate = data[index].date;
+                    const pointDate = visibleData[index].date;
                     const dateText = pointDate.toLocaleString();
                     // 估计文本宽度 + 两侧各5px内边距
                     const estimatedWidth = dateText.length * 6;
@@ -481,7 +560,6 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
               </TooltipWithBounds>
             )}
         </div>
-
       </div>
     </div>
   );
