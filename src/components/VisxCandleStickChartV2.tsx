@@ -633,12 +633,23 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                         <circle
                           cx={x}
                           cy={highY - 15}
-                          r={5} // 圆形半径为5，相当于原来10x10的方形
+                          r={7} // 圆形半径为5，相当于原来10x10的方形
                           fill="blue"
                           stroke="#fff"
                           strokeWidth={1}
                           style={{ cursor: "pointer" }}
                         />
+                        <text
+                          x={x}
+                          y={highY - 15}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="#fff"
+                          fontSize={7}
+                          fontWeight="bold"
+                          pointerEvents="none">
+                          N
+                        </text>
                       </g>
                     )}
                   </Group>
