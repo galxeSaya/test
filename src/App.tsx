@@ -130,7 +130,7 @@ const App: React.FC = () => {
         </ErrorBoundary>
       </div>
       
-      <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
+      <div style={{ marginTop: '70px', fontSize: '14px', color: '#666' }}>
         <p>提示: 将鼠标悬停在折线上可查看数据点信息，红色方块代表新闻事件，悬停在上面可查看详情。</p>
       </div>
     </div>
