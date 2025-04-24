@@ -1,14 +1,14 @@
 import BtcIcon from '../assets/btc.png';
-import Arrow from '../assets/Arrow.svg';
+import { ReactComponent as ArrowIcon } from '../assets/Arrow.svg';
 
 const TopTool = () => {
-  return <div>
-    <div>
-    <img src={BtcIcon} alt="btc" className="w-4 h-4 rounded-full" />
-    <span>Bitcoin</span>
+  return <div className="flex justify-between items-center p-3">
+    <div className="flex items-center">
+      <img src={BtcIcon} alt="btc" className="w-4 h-4 rounded-full mr-2" />
+      <span>Bitcoin</span>
     </div>
     <div>
-      <Arrow />
+      <ArrowIcon className="w-4 h-4 fill-gray-800 cursor-pointer" />
     </div>
   </div>
 }
