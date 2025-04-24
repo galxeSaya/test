@@ -22,6 +22,14 @@ export const INCREASE_COLOR = "#4caf50"; // 绿色
 export const DECREASE_COLOR = "#ff5722"; // 红色
 export const DEFAULT_COLOR = "#383838"; // 灰色
 
+// 添加一个禁用文本选择的CSS类样式
+const noSelectStyle = {
+  userSelect: 'none',
+  WebkitUserSelect: 'none',
+  MozUserSelect: 'none',
+  msUserSelect: 'none',
+};
+
 interface VisxCandleStickChartProps {
   width: number;
   height: number;
@@ -57,11 +65,15 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   newsPoints,
   margin = { top: 10, right: 60, bottom: 50, left: 10 },
 }) => {
-  // 状态管理：用于跟踪当前悬停的蜡烛和新闻点
   const [tooltipData, setTooltipData] = useState<TTooltipData>();
   const [chartHeight, setChartHeight] = useState(height);
   const [isMini, setIsMini] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  
+  // 添加拖动相关状态
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragStartRange, setDragStartRange] = useState({ startIndex: 0, endIndex: 0 });
 
   // 数据范围状态 - 初始化为显示末尾的50个数据点
   const [visibleRange, setVisibleRange] = useState({
@@ -186,6 +198,92 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     null
   );
 
+  // 添加开始拖动事件处理
+  const handleMouseDown = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
+    // 只响应左键点击
+    if (event.button !== 0) return;
+    
+    const { x } = localPoint(event) || { x: 0 };
+    setIsDragging(true);
+    setDragStartX(x);
+    setDragStartRange({...visibleRange});
+    
+    // 改变鼠标样式和禁用文本选择
+    if (svgRef.current) {
+      svgRef.current.style.cursor = 'grabbing';
+      
+      // 在拖动开始时禁用文档上的文本选择
+      document.body.style.userSelect = 'none';
+    }
+    
+    // 防止事件冒泡和默认行为
+    event.preventDefault();
+    event.stopPropagation();
+  }, [visibleRange]);
+  
+  // 拖动中的处理
+  const handleDragMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
+    if (!isDragging) return;
+    
+    const { x } = localPoint(event) || { x: 0 };
+    const deltaX = x - dragStartX;
+    
+    // 计算移动的数据点数量
+    const visibleCount = dragStartRange.endIndex - dragStartRange.startIndex + 1;
+    const pointsPerPixel = visibleCount / innerWidth;
+    const pointsToMove = Math.round(deltaX * pointsPerPixel);
+    
+    if (pointsToMove === 0) return;
+    
+    // 向右拖动 (deltaX > 0) 应该显示更早的数据 (减小索引)
+    // 向左拖动 (deltaX < 0) 应该显示更晚的数据 (增加索引)
+    let newStartIndex = dragStartRange.startIndex - pointsToMove;
+    let newEndIndex = dragStartRange.endIndex - pointsToMove;
+    
+    // 边界检查
+    if (newStartIndex < 0) {
+      newStartIndex = 0;
+      newEndIndex = newStartIndex + visibleCount - 1;
+    }
+    
+    if (newEndIndex >= data.length) {
+      newEndIndex = data.length - 1;
+      newStartIndex = Math.max(0, newEndIndex - visibleCount + 1);
+    }
+    
+    setVisibleRange({
+      startIndex: newStartIndex,
+      endIndex: newEndIndex
+    });
+  }, [isDragging, dragStartX, dragStartRange, innerWidth, data.length]);
+  
+  // 结束拖动
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    if (svgRef.current) {
+      svgRef.current.style.cursor = 'default';
+      
+      // 恢复文本选择
+      document.body.style.userSelect = '';
+    }
+  }, []);
+  
+  // 鼠标离开SVG时也结束拖动
+  const handleMouseLeave = useCallback(() => {
+    setCrosshair(null);
+    setTooltipData(undefined);
+    
+    if (isDragging) {
+      setIsDragging(false);
+      if (svgRef.current) {
+        svgRef.current.style.cursor = 'default';
+        
+        // 恢复文本选择
+        document.body.style.userSelect = '';
+      }
+    }
+  }, [isDragging]);
+
   // 将wheel事件处理函数修改为不调用preventDefault
   const handleWheel = useCallback((event: WheelEvent<SVGSVGElement>) => {
     // 确定缩放方向：向下滚动(正deltaY)=缩小，向上滚动(负deltaY)=放大
@@ -252,6 +350,12 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
 
   // 处理鼠标移动事件
   const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
+    // 如果正在拖动，则调用拖动处理函数
+    if (isDragging) {
+      handleDragMove(event);
+      return;
+    }
+    
     const { x, y } = localPoint(event) || { x: 0, y: 0 };
 
     // 超出图表区域时不处理
@@ -311,11 +415,6 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     });
   };
 
-  const handleMouseLeave = () => {
-    setCrosshair(null);
-    setTooltipData(undefined);
-  };
-
   return (
     <div>
       <TopTool toogleMini={() => setIsMini(!isMini)} isMini={isMini} />
@@ -334,7 +433,17 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
             height={chartHeight}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
-            onWheel={handleWheel}>
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onWheel={handleWheel}
+            style={{ 
+              cursor: isDragging ? 'grabbing' : 'default',
+              // 确保SVG本身也禁用文本选择
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none',
+            }}>
             <Group left={margin.left} top={margin.top}>
               {/* 网格线 */}
               <GridRows
@@ -468,7 +577,7 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                 hideTicks
                 scale={xScale}
                 top={innerHeight}
-                stroke="rgba(0, 0, 0, 0.5)"
+                stroke="rgba(0, 0, 0, 0.1)"
                 tickStroke="rgba(0, 0, 0, 0.5)"
                 tickValues={customTickValues}
                 tickFormat={(date) => {
