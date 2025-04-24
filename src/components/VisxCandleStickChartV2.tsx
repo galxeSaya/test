@@ -778,8 +778,8 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                   ...tooltipStyles,
                   pointerEvents: "auto", // 允许鼠标事件
                 }}
-                top={tooltipData.y + 10}
-                left={tooltipData.x + 10}
+                top={tooltipData.y - 5}
+                left={tooltipData.x - 5}
                 onMouseEnter={handleTooltipMouseEnter}
                 onMouseLeave={handleTooltipMouseLeave}>
                 <div>

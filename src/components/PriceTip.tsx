@@ -27,7 +27,7 @@ const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
   }, [tooltipData]);
 
   return (
-    <div className="pt-6 p-6 flex flex-col gap-1">
+    <div className="pt-6 p-6 flex flex-col gap-1 select-none">
       <div className="flex flex-wrap justify-between items-center">
         <div className="flex items-center gap-3">
           <span>BTC/ETH</span>
