@@ -1,58 +1,44 @@
-import React, { ErrorInfo, ReactNode } from 'react';
-import { ParentSize } from '@visx/responsive';
+import React from 'react';
 import NewsLineChart from './components/NewsLineChart';
 import RechartsNewsLineChart from './components/RechartsNewsLineChart';
 import VisxCandleStickChart from './components/VisxCandleStickChart';
 import VisxCandleStickChartV2 from './components/VisxCandleStickChartV2';
+import { ParentSize } from '@visx/responsive';
 import { sampleData, sampleNewsPoints } from './data/sampleData';
 import { sampleCandleData, sampleCandleNewsPoints } from './data/sampleCandleData';
 
 // 添加错误边界组件
-class ErrorBoundary extends React.Component<{children: ReactNode}, {hasError: boolean, error: Error | null}> {
-  constructor(props: {children: ReactNode}) {
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: React.ReactNode}) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("图表渲染错误:", error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Error caught by error boundary:", error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div style={{ padding: '20px', color: 'red' }}>
-          <h3>渲染出错</h3>
-          <p>{this.state.error?.message}</p>
-          <button onClick={() => this.setState({ hasError: false })}>重试</button>
-        </div>
-      );
+      return <div className="p-4 text-red-600 bg-red-100 rounded-lg">组件加载出错，请刷新页面重试。</div>;
     }
 
     return this.props.children;
   }
 }
 
-const App: React.FC = () => {
-  // 添加控制台输出来调试
-  console.log("sampleData:", sampleData);
-  console.log("sampleNewsPoints:", sampleNewsPoints);
-  
+const App = () => {
   return (
-    <div style={{ 
-      padding: '20px', 
-      maxWidth: '1000px', 
-      margin: '0 auto'
-    }}>
-      <h1 style={{ textAlign: 'center' }}>新闻数据折线图</h1>
+    <div className="max-w-7xl mx-auto p-6">
+      <h1 className="text-center text-3xl font-bold mb-6">新闻数据折线图</h1>
       
       {/* ViSX 实现 */}
-      <h2>ViSX 实现</h2>
-      <div style={{ width: '100%', height: '500px', border: '1px solid #ddd', borderRadius: '8px' }}>
+      <h2 className="text-2xl font-semibold mb-4">ViSX 实现</h2>
+      <div className="w-full h-[500px] border border-gray-300 rounded-lg">
         <ErrorBoundary>
           <ParentSize>
             {({ width, height }) => (
@@ -63,15 +49,15 @@ const App: React.FC = () => {
                   data={sampleData}
                   newsPoints={sampleNewsPoints}
                 />
-              ) : <div>调整大小中...</div>
+              ) : <div className="flex items-center justify-center h-full">调整大小中...</div>
             )}
           </ParentSize>
         </ErrorBoundary>
       </div>
       
       {/* Recharts 实现 */}
-      <h2 style={{ marginTop: '30px' }}>Recharts 实现</h2>
-      <div style={{ width: '100%', height: '500px', border: '1px solid #ddd', borderRadius: '8px' }}>
+      {/* <h2 className="text-2xl font-semibold mt-8 mb-4">Recharts 实现</h2>
+      <div className="w-full h-[500px] border border-gray-300 rounded-lg">
         <ErrorBoundary>
           <ParentSize>
             {({ width, height }) => (
@@ -82,15 +68,15 @@ const App: React.FC = () => {
                   data={sampleData}
                   newsPoints={sampleNewsPoints}
                 />
-              ) : <div>调整大小中...</div>
+              ) : <div className="flex items-center justify-center h-full">调整大小中...</div>
             )}
           </ParentSize>
         </ErrorBoundary>
-      </div>
+      </div> */}
       
       {/* ViSX 蜡烛图实现 */}
-      <h2 style={{ marginTop: '30px' }}>ViSX 蜡烛图实现</h2>
-      <div style={{ width: '100%', height: '500px', border: '1px solid #ddd', borderRadius: '8px' }}>
+      <h2 className="text-2xl font-semibold mt-8 mb-4">ViSX 蜡烛图实现</h2>
+      <div className="w-full h-[500px] border border-gray-300 rounded-lg">
         <ErrorBoundary>
           <ParentSize>
             {({ width, height }) => (
@@ -101,19 +87,15 @@ const App: React.FC = () => {
                   data={sampleCandleData}
                   newsPoints={sampleCandleNewsPoints}
                 />
-              ) : <div>调整大小中...</div>
+              ) : <div className="flex items-center justify-center h-full">调整大小中...</div>
             )}
           </ParentSize>
         </ErrorBoundary>
       </div>
       
-      <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
-        <p>提示: 将鼠标悬停在折线上可查看数据点信息，红色方块代表新闻事件，悬停在上面可查看详情。</p>
-      </div>
-
-      {/* ViSX 蜡烛图实现 */}
-      <h2 style={{ marginTop: '30px' }}>ViSX 蜡烛图实现 V2</h2>
-      <div style={{ width: '100%', height: '500px', border: '1px solid #ddd', borderRadius: '8px' }}>
+      {/* ViSX 蜡烛图实现 V2 */}
+      <h2 className="text-2xl font-semibold mt-8 mb-4">ViSX 蜡烛图实现 V2</h2>
+      <div className="w-full h-[500px] border border-gray-300 rounded-lg">
         <ErrorBoundary>
           <ParentSize>
             {({ width, height }) => (
@@ -124,13 +106,13 @@ const App: React.FC = () => {
                   data={sampleCandleData}
                   newsPoints={sampleCandleNewsPoints}
                 />
-              ) : <div>调整大小中...</div>
+              ) : <div className="flex items-center justify-center h-full">调整大小中...</div>
             )}
           </ParentSize>
         </ErrorBoundary>
       </div>
       
-      <div style={{ marginTop: '70px', fontSize: '14px', color: '#666' }}>
+      <div className="mt-16 text-sm text-gray-600">
         <p>提示: 将鼠标悬停在折线上可查看数据点信息，红色方块代表新闻事件，悬停在上面可查看详情。</p>
       </div>
     </div>

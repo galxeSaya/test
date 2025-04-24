@@ -24,26 +24,28 @@ const PriceTip = ({ tooltipData }: { tooltipData: TTooltipData }) => {
     return res;
   }, [tooltipData]);
   return (
-    <div style={{ display: 'flex'}}>
+    <div className="flex">
       <div>
-        <strong>日期:</strong>
-        {props.date}
-      </div>
-      <div>
-        <strong>开盘价:</strong> {props.open}
-      </div>
-      <div>
-        <strong>收盘价:</strong> {props.close}
-      </div>
-      <div>
-        <strong>最高价:</strong> {props.high}
-      </div>
-      <div>
-        <strong>最低价:</strong> {props.low}
-      </div>
-      <div>
-        <strong>成交量:</strong>
-        {props.volume}
+        <div className="mb-1">
+          <strong>日期:</strong>
+          {props.date}
+        </div>
+        <div className="mb-1">
+          <strong>开盘价:</strong> {props.open}
+        </div>
+        <div className="mb-1">
+          <strong>收盘价:</strong> {props.close}
+        </div>
+        <div className="mb-1">
+          <strong>最高价:</strong> {props.high}
+        </div>
+        <div className="mb-1">
+          <strong>最低价:</strong> {props.low}
+        </div>
+        <div className="mb-1">
+          <strong>成交量:</strong>
+          {props.volume}
+        </div>
       </div>
     </div>
   );
