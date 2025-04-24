@@ -38,7 +38,7 @@ export type TTooltipData = {
   isHoveringNewsPoint: boolean;
 };
 
-const VisxCandleStickChart: React.FC<VisxCandleStickChartProps> = ({
+const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   width,
   height,
   data,
@@ -369,4 +369,4 @@ const VisxCandleStickChart: React.FC<VisxCandleStickChartProps> = ({
   );
 };
 
-export default VisxCandleStickChart;
+export default VisxCandleStickChartV2;
