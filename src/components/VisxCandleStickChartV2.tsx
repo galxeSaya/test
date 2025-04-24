@@ -398,11 +398,21 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                     >
                       {yScale.invert(crosshair.y - margin.top).toFixed(2)}
                     </text>
-                    {/* X轴时间标签 - 改为自适应宽度 */}
+                    {/* X轴时间标签 - 显示对应数据点的时间 */}
                     {(() => {
-                      const xDate = xScale.invert(crosshair.x - margin.left);
-                      const dateText = xDate.toLocaleString();
-                      // 估计文本宽度 (每个字符约8像素) + 两侧各5px内边距
+                      // 找到最近的数据点
+                      const x0 = xScale.invert(crosshair.x - margin.left);
+                      const index = data.reduce((prev, curr, i) => {
+                        return Math.abs(+getDate(curr) - +x0) <
+                          Math.abs(+getDate(data[prev]) - +x0)
+                          ? i
+                          : prev;
+                      }, 0);
+                      
+                      // 使用实际数据点的时间
+                      const pointDate = data[index].date;
+                      const dateText = pointDate.toLocaleString();
+                      // 估计文本宽度 + 两侧各5px内边距
                       const estimatedWidth = dateText.length * 6; 
                       
                       return (
