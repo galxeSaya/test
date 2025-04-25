@@ -41,6 +41,9 @@ dependencies:
   '@visx/marker':
     specifier: ^3.12.0
     version: 3.12.0(react@18.3.1)
+  '@visx/pattern':
+    specifier: ^3.12.0
+    version: 3.12.0(react@18.3.1)
   '@visx/responsive':
     specifier: ^3.0.0
     version: 3.12.0(react@18.3.1)
@@ -3011,6 +3014,17 @@ packages:
       '@types/react': 18.3.20
       '@visx/group': 3.12.0(react@18.3.1)
       '@visx/shape': 3.12.0(react@18.3.1)
+      classnames: 2.5.1
+      prop-types: 15.8.1
+      react: 18.3.1
+    dev: false
+
+  /@visx/pattern@3.12.0(react@18.3.1):
+    resolution: {integrity: sha512-ZkNA/2TkULNiiY4cw2IkuQcQRp9zI3SQ0/JoZMQ+UmUvY5RNBcsdTmic7649egHq0FRYCbY0DDQVJicccW5JUg==}
+    peerDependencies:
+      react: ^16.0.0-0 || ^17.0.0-0 || ^18.0.0-0
+    dependencies:
+      '@types/react': 18.3.20
       classnames: 2.5.1
       prop-types: 15.8.1
       react: 18.3.1
