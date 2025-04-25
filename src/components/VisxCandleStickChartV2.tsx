@@ -81,6 +81,7 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   const tooltipTimerRef = useRef<number | null>(null);
   const isInNewsTip = useRef<boolean | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // 添加拖动相关状态
   const [isDragging, setIsDragging] = useState(false);
@@ -505,14 +506,20 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
       // 如果组件包装器存在，使用其宽度
       if (wrapRef.current) {
         setChartWidth(wrapRef.current.clientWidth);
+        if (isExpanded) {
+          setChartHeight(wrapRef.current.clientHeight - 50)
+        } else {
+          setChartHeight(height)
+        }
       } else {
         setChartWidth(width);
+        setChartHeight(height)
       }
-      
+
       // 如果不是迷你模式，也更新高度
-      if (!isMini) {
+      /* if (!isMini) {
         setChartHeight(height);
-      }
+      } */
     };
     
     // 添加窗口大小变化监听器
@@ -522,7 +529,7 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [width, height, isMini]);
+  }, [width, height, isMini, isExpanded]);
 
   // 处理鼠标移入弹窗
   const handleTooltipMouseEnter = () => {
@@ -614,10 +621,37 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     });
   };
 
-  const [isExpanded, setIsExpanded] = useState(false);
   const toogleExpand = () => {
     if (!wrapRef.current) return;
-
+    if (!isExpanded) {
+      if (wrapRef.current.requestFullscreen) {
+        wrapRef.current.requestFullscreen().then(() => {
+          setIsExpanded(true);
+          /* setChartHeight(window.innerHeight - 20);
+          console.log(window.innerWidth);
+          
+          setChartWidth(window.innerWidth - 20); */
+        });
+      }
+      /* else if (wrapRef.current.webkitRequestFullscreen) { // Safari
+        wrapRef.current.webkitRequestFullscreen();
+      } else if (wrapRef.current.msRequestFullscreen) { // IE11
+        wrapRef.current.msRequestFullscreen();
+      } */
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().then(() => {
+          setIsExpanded(false);
+          /* setChartHeight(height);
+          setChartWidth(width); */
+        });
+      }
+      /* else if (document.webkitExitFullscreen) { // Safari
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) { //IE11
+        document.msExitFullscreen();
+      } */
+    }
   };
   const handleSnapShot = () => {};
 
@@ -628,6 +662,7 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
         isMini={isMini}
         toogleExpand={toogleExpand}
         handleSnapShot={handleSnapShot}
+        isExpand={isExpanded}
       />
       <div
         className={clsx("relative", {
