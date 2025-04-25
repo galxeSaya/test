@@ -97,7 +97,7 @@ const App = () => {
       <h2 className="text-2xl font-semibold mt-8 mb-4">ViSX 蜡烛图实现 V2</h2>
       <div className="w-full h-auto border border-gray-300 rounded-lg overflow-hidden">
         <ErrorBoundary>
-          <ParentSize>
+          <ParentSize debounceTime={50}>
             {({ width, height }) => (
               width > 0 ? (
                 <VisxCandleStickChartV2

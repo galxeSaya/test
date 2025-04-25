@@ -494,6 +494,36 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     };
   }, []);
 
+  // 添加窗口大小变化监听
+  useEffect(() => {
+    // 立即更新当前尺寸
+    setChartWidth(width);
+    setChartHeight(height);
+    
+    // 创建窗口大小变化的事件处理函数
+    const handleResize = () => {
+      // 如果组件包装器存在，使用其宽度
+      if (wrapRef.current) {
+        setChartWidth(wrapRef.current.clientWidth);
+      } else {
+        setChartWidth(width);
+      }
+      
+      // 如果不是迷你模式，也更新高度
+      if (!isMini) {
+        setChartHeight(height);
+      }
+    };
+    
+    // 添加窗口大小变化监听器
+    window.addEventListener('resize', handleResize);
+    
+    // 组件卸载时清理事件监听器
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [width, height, isMini]);
+
   // 处理鼠标移入弹窗
   const handleTooltipMouseEnter = () => {
     isInNewsTip.current = true;
