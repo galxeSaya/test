@@ -583,20 +583,22 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
       handleDragMove(event);
       return;
     }
-
+    
     if (tooltipTimerRef.current || isInNewsTip.current) return;
+    
     const { x, y } = localPoint(event) || { x: 0, y: 0 };
 
     // 超出图表区域时不处理
     if (
       x < margin.left ||
-      x > width - margin.right ||
+      x > chartWidth - margin.right ||
       y < margin.top ||
-      y > height - margin.bottom
+      y > chartHeight - margin.bottom
     ) {
       setCrosshair(null);
       return;
     }
+console.log('-----3----');
 
     // 更新十字线位置
     setCrosshair({ x, y });
