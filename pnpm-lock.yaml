@@ -59,6 +59,9 @@ dependencies:
   clsx:
     specifier: ^2.1.1
     version: 2.1.1
+  html-to-image:
+    specifier: ^1.11.13
+    version: 1.11.13
   react:
     specifier: ^18.2.0
     version: 18.3.1
@@ -6196,6 +6199,10 @@ packages:
       relateurl: 0.2.7
       terser: 5.39.0
     dev: true
+
+  /html-to-image@1.11.13:
+    resolution: {integrity: sha512-cuOPoI7WApyhBElTTb9oqsawRvZ0rHhaHwghRLlTuffoD1B2aDemlCruLeZrUIIdvG7gs9xeELEPm6PhuASqrg==}
+    dev: false
 
   /html-webpack-plugin@5.6.3(webpack@5.99.5):
     resolution: {integrity: sha512-QSf1yjtSAsmf7rYBV7XX86uua4W/vkhIt0xNXKbsi2foEeW7vjJQz4bhnpL3xH+l1ryl1680uNv968Z+X6jSYg==}

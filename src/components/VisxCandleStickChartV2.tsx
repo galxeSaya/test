@@ -17,6 +17,7 @@ import { Bar, Line } from "@visx/shape"; // 添加Line导入
 import PriceTip from "./PriceTip";
 import TopTool from "./TopTool";
 import clsx from "clsx";
+import { toPng } from "html-to-image";
 
 // 默认显示的数据点数量
 const DEFAULT_VISIBLE_ITEMS = 50;
@@ -81,6 +82,7 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   const tooltipTimerRef = useRef<number | null>(null);
   const isInNewsTip = useRef<boolean | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const chartWrapRef = useRef<HTMLDivElement | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // 添加拖动相关状态
@@ -598,7 +600,6 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
       setCrosshair(null);
       return;
     }
-console.log('-----3----');
 
     // 更新十字线位置
     setCrosshair({ x, y });
@@ -683,7 +684,29 @@ console.log('-----3----');
       } */
     }
   };
-  const handleSnapShot = () => {};
+  const handleSnapShot = async () => {
+
+
+    if (!chartWrapRef.current) return;
+      
+    try {
+      // 生成图片数据URL
+      const dataUrl = await toPng(chartWrapRef.current, {
+        quality: 1,       // 图片质量 (0-1)
+        backgroundColor: '#ffffff', // 背景色
+        pixelRatio: 2     // 提高分辨率
+      });
+
+      // 创建下载链接
+      const link = document.createElement('a');
+      link.download = 'snapshot.png';  // 下载文件名
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('生成图片失败:', error);
+    }
+
+  };
 
   return (
     <div ref={wrapRef} className="bg-white">
@@ -698,6 +721,7 @@ console.log('-----3----');
         className={clsx("relative", {
           hidden: isMini,
         })}
+        ref={chartWrapRef}
         style={{ height: isMini ? "auto" : chartHeight, width: chartWidth }}>
         <div className="absolute top-0 left-0 right-20 h-fit">
           <PriceTip tooltipData={tooltipData} />
