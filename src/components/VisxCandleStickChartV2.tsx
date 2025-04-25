@@ -531,6 +531,34 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     };
   }, [width, height, isMini, isExpanded]);
 
+  // 添加全屏变化事件监听
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      // 检查当前是否真的处于全屏状态
+      const isFullScreen = !!document.fullscreenElement;
+      
+      // 如果全屏状态与组件状态不一致，更新组件状态
+      if (isFullScreen !== isExpanded) {
+        setIsExpanded(isFullScreen);
+      }
+    };
+
+    // 添加全屏变化事件监听器
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    // 对不同浏览器添加相应的事件监听
+    document.addEventListener('webkitfullscreenchange', handleFullScreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullScreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullScreenChange);
+    
+    // 组件卸载时清理事件监听器
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullScreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullScreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullScreenChange);
+    };
+  }, [isExpanded]);
+
   // 处理鼠标移入弹窗
   const handleTooltipMouseEnter = () => {
     isInNewsTip.current = true;
