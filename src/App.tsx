@@ -95,7 +95,7 @@ const App = () => {
       
       {/* ViSX 蜡烛图实现 V2 */}
       <h2 className="text-2xl font-semibold mt-8 mb-4">ViSX 蜡烛图实现 V2</h2>
-      <div className="w-full h-auto border border-gray-300 rounded-lg">
+      <div className="w-full h-auto border border-gray-300 rounded-lg overflow-hidden">
         <ErrorBoundary>
           <ParentSize>
             {({ width, height }) => (
