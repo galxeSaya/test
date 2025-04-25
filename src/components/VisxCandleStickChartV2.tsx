@@ -74,11 +74,13 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
 }) => {
   const [tooltipData, setTooltipData] = useState<TTooltipData>();
   const [chartHeight, setChartHeight] = useState(height);
+  const [chartWidth, setChartWidth] = useState(width);
   const [isMini, setIsMini] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
   // 添加tooltip定时器引用
   const tooltipTimerRef = useRef<number | null>(null);
   const isInNewsTip = useRef<boolean | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
 
   // 添加拖动相关状态
   const [isDragging, setIsDragging] = useState(false);
@@ -95,8 +97,15 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   });
 
   // 计算图表区域尺寸
-  const innerWidth = width - margin.left - margin.right;
-  const innerHeight = chartHeight - margin.top - margin.bottom;
+  const innerWidth = useMemo(() => chartWidth - margin.left - margin.right, [
+    chartWidth,
+    margin.left,
+    margin.right,
+  ]);
+  const innerHeight = useMemo(
+    () => chartHeight - margin.top - margin.bottom,
+    [chartHeight, margin.top, margin.bottom]
+  );
 
   // 过滤数据，只显示可见范围内的数据
   const visibleData = useMemo(() => {
@@ -337,7 +346,9 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   }, [isDragging, tooltipData]);
 
   // 添加手势状态跟踪
-  const [gestureType, setGestureType] = useState<"none" | "pan" | "zoom">("none");
+  const [gestureType, setGestureType] = useState<"none" | "pan" | "zoom">(
+    "none"
+  );
   const lastWheelTimeRef = useRef<number>(0);
   const wheelTimeoutRef = useRef<number | null>(null);
 
@@ -372,9 +383,14 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
       wheelTimeoutRef.current = window.setTimeout(resetGestureType, 100);
 
       // 根据当前手势类型执行相应操作
-      if (gestureType === "pan" || (gestureType === "none" && Math.abs(event.deltaX) > Math.abs(event.deltaY))) {
+      if (
+        gestureType === "pan" ||
+        (gestureType === "none" &&
+          Math.abs(event.deltaX) > Math.abs(event.deltaY))
+      ) {
         // 横向滚动 - 移动K线图
-        const visibleCount = visibleRange.endIndex - visibleRange.startIndex + 1;
+        const visibleCount =
+          visibleRange.endIndex - visibleRange.startIndex + 1;
         const pointsPerPixel = visibleCount / innerWidth;
         // deltaX 正值表示向右滑动，应该移动到更早的数据（增加索引）
         const pointsToMove = Math.round(event.deltaX * pointsPerPixel * 0.5);
@@ -399,7 +415,11 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
           startIndex: newStartIndex,
           endIndex: newEndIndex,
         });
-      } else if (gestureType === "zoom" || (gestureType === "none" && Math.abs(event.deltaY) >= Math.abs(event.deltaX))) {
+      } else if (
+        gestureType === "zoom" ||
+        (gestureType === "none" &&
+          Math.abs(event.deltaY) >= Math.abs(event.deltaX))
+      ) {
         // 垂直滚动 - 执行缩放操作
         const isZoomIn = event.deltaY < 0;
 
@@ -408,7 +428,8 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
         const xPos = (x - margin.left) / innerWidth; // 归一化位置 (0-1)
 
         // 计算当前可见数据点数量
-        const visibleCount = visibleRange.endIndex - visibleRange.startIndex + 1;
+        const visibleCount =
+          visibleRange.endIndex - visibleRange.startIndex + 1;
 
         // 计算新的可见数据点数量
         let newVisibleCount = isZoomIn
@@ -444,7 +465,14 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
         });
       }
     },
-    [data.length, innerWidth, margin.left, visibleRange, gestureType, resetGestureType]
+    [
+      data.length,
+      innerWidth,
+      margin.left,
+      visibleRange,
+      gestureType,
+      resetGestureType,
+    ]
   );
 
   // 使用非被动事件监听器来阻止默认行为
@@ -541,7 +569,6 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
         isHoveringNewsPoint = true;
         // 鼠标在新闻点上，清除任何现有的隐藏计时器
         if (tooltipTimerRef.current !== null) {
-
           window.clearTimeout(tooltipTimerRef.current);
           tooltipTimerRef.current = null;
         }
@@ -557,21 +584,33 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     });
   };
 
+  const [isExpanded, setIsExpanded] = useState(false);
+  const toogleExpand = () => {
+    if (!wrapRef.current) return;
+
+  };
+  const handleSnapShot = () => {};
+
   return (
-    <div>
-      <TopTool toogleMini={() => setIsMini(!isMini)} isMini={isMini} />
+    <div ref={wrapRef} className="bg-white">
+      <TopTool
+        toogleMini={() => setIsMini(!isMini)}
+        isMini={isMini}
+        toogleExpand={toogleExpand}
+        handleSnapShot={handleSnapShot}
+      />
       <div
         className={clsx("relative", {
           hidden: isMini,
         })}
-        style={{ height: isMini ? "auto" : height, width: width }}>
+        style={{ height: isMini ? "auto" : chartHeight, width: chartWidth }}>
         <div className="absolute top-0 left-0 right-20 h-fit">
           <PriceTip tooltipData={tooltipData} />
         </div>
         <div style={{ height: chartHeight }} className="relative z-[1]">
           <svg
             ref={svgRef}
-            width={width}
+            width={chartWidth}
             height={chartHeight}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
