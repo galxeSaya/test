@@ -65,7 +65,7 @@ export type TTooltipData = {
   isHoveringNewsPoint: boolean;
 };
 
-const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
+export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
   width,
   height,
   data,
@@ -336,12 +336,133 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     }
   }, [isDragging, tooltipData]);
 
-  // 清除组件卸载时的计时器
-  useEffect(() => {
-    return () => {
-      if (tooltipTimerRef.current !== null) {
-        window.clearTimeout(tooltipTimerRef.current);
+  // 添加手势状态跟踪
+  const [gestureType, setGestureType] = useState<"none" | "pan" | "zoom">("none");
+  const lastWheelTimeRef = useRef<number>(0);
+  const wheelTimeoutRef = useRef<number | null>(null);
+
+  // 手势结束处理函数
+  const resetGestureType = useCallback(() => {
+    setGestureType("none");
+  }, []);
+
+  // 将wheel事件处理函数修改为不调用preventDefault
+  const handleWheel = useCallback(
+    (event: WheelEvent<SVGSVGElement>) => {
+      const currentTime = Date.now();
+      // 检测新的手势开始 (如果距离上次滚轮事件超过300ms)
+      if (currentTime - lastWheelTimeRef.current > 100) {
+        // 确定这是什么类型的手势 (移动或缩放)
+        if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+          setGestureType("pan");
+        } else {
+          setGestureType("zoom");
+        }
       }
+
+      // 更新最后滚轮事件时间
+      lastWheelTimeRef.current = currentTime;
+
+      // 清除现有的超时
+      if (wheelTimeoutRef.current !== null) {
+        window.clearTimeout(wheelTimeoutRef.current);
+      }
+
+      // 设置新的超时来重置手势类型
+      wheelTimeoutRef.current = window.setTimeout(resetGestureType, 100);
+
+      // 根据当前手势类型执行相应操作
+      if (gestureType === "pan" || (gestureType === "none" && Math.abs(event.deltaX) > Math.abs(event.deltaY))) {
+        // 横向滚动 - 移动K线图
+        const visibleCount = visibleRange.endIndex - visibleRange.startIndex + 1;
+        const pointsPerPixel = visibleCount / innerWidth;
+        // deltaX 正值表示向右滑动，应该移动到更早的数据（增加索引）
+        const pointsToMove = Math.round(event.deltaX * pointsPerPixel * 0.5);
+
+        if (pointsToMove === 0) return;
+
+        let newStartIndex = visibleRange.startIndex + pointsToMove;
+        let newEndIndex = visibleRange.endIndex + pointsToMove;
+
+        // 边界检查
+        if (newStartIndex < 0) {
+          newStartIndex = 0;
+          newEndIndex = newStartIndex + visibleCount - 1;
+        }
+
+        if (newEndIndex >= data.length) {
+          newEndIndex = data.length - 1;
+          newStartIndex = Math.max(0, newEndIndex - visibleCount + 1);
+        }
+
+        setVisibleRange({
+          startIndex: newStartIndex,
+          endIndex: newEndIndex,
+        });
+      } else if (gestureType === "zoom" || (gestureType === "none" && Math.abs(event.deltaY) >= Math.abs(event.deltaX))) {
+        // 垂直滚动 - 执行缩放操作
+        const isZoomIn = event.deltaY < 0;
+
+        // 获取鼠标在图表上的位置
+        const { x } = localPoint(event) || { x: 0 };
+        const xPos = (x - margin.left) / innerWidth; // 归一化位置 (0-1)
+
+        // 计算当前可见数据点数量
+        const visibleCount = visibleRange.endIndex - visibleRange.startIndex + 1;
+
+        // 计算新的可见数据点数量
+        let newVisibleCount = isZoomIn
+          ? Math.max(
+              MIN_VISIBLE_ITEMS,
+              Math.floor(visibleCount * (1 - ZOOM_FACTOR))
+            )
+          : Math.min(data.length, Math.ceil(visibleCount * (1 + ZOOM_FACTOR)));
+
+        // 确保在数据范围内
+        newVisibleCount = Math.min(newVisibleCount, data.length);
+
+        // 计算新的startIndex和endIndex，保持鼠标位置尽量固定
+        const centerIndex =
+          visibleRange.startIndex + Math.floor(xPos * visibleCount);
+        let newStartIndex = Math.floor(centerIndex - xPos * newVisibleCount);
+        let newEndIndex = newStartIndex + newVisibleCount - 1;
+
+        // 边界检查
+        if (newStartIndex < 0) {
+          newStartIndex = 0;
+          newEndIndex = Math.min(data.length - 1, newVisibleCount - 1);
+        }
+
+        if (newEndIndex >= data.length) {
+          newEndIndex = data.length - 1;
+          newStartIndex = Math.max(0, newEndIndex - newVisibleCount + 1);
+        }
+
+        setVisibleRange({
+          startIndex: newStartIndex,
+          endIndex: newEndIndex,
+        });
+      }
+    },
+    [data.length, innerWidth, margin.left, visibleRange, gestureType, resetGestureType]
+  );
+
+  // 使用非被动事件监听器来阻止默认行为
+  useEffect(() => {
+    const svgElement = svgRef.current;
+    if (!svgElement) return;
+
+    // 简化的阻止默认行为函数
+    const preventDefault = (e: Event) => {
+      e.preventDefault();
+    };
+
+    // 添加非被动事件监听器
+    svgElement.addEventListener("wheel", preventDefault, { passive: false });
+
+    // 清理函数
+    return () => {
+      svgElement.removeEventListener("wheel", preventDefault);
     };
   }, []);
 
@@ -361,77 +482,6 @@ const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
     setTooltipData(undefined);
     isInNewsTip.current = false;
   };
-
-  // 将wheel事件处理函数修改为不调用preventDefault
-  const handleWheel = useCallback(
-    (event: WheelEvent<SVGSVGElement>) => {
-      // 确定缩放方向：向下滚动(正deltaY)=缩小，向上滚动(负deltaY)=放大
-      const isZoomIn = event.deltaY < 0;
-
-      // 获取鼠标在图表上的位置
-      const { x } = localPoint(event) || { x: 0 };
-      const xPos = (x - margin.left) / innerWidth; // 归一化位置 (0-1)
-
-      // 计算当前可见数据点数量
-      const visibleCount = visibleRange.endIndex - visibleRange.startIndex + 1;
-
-      // 计算新的可见数据点数量
-      let newVisibleCount = isZoomIn
-        ? Math.max(
-            MIN_VISIBLE_ITEMS,
-            Math.floor(visibleCount * (1 - ZOOM_FACTOR))
-          )
-        : Math.min(data.length, Math.ceil(visibleCount * (1 + ZOOM_FACTOR)));
-
-      // 确保在数据范围内
-      newVisibleCount = Math.min(newVisibleCount, data.length);
-
-      // 计算新的startIndex和endIndex，保持鼠标位置尽量固定
-      const centerIndex =
-        visibleRange.startIndex + Math.floor(xPos * visibleCount);
-      let newStartIndex = Math.floor(centerIndex - xPos * newVisibleCount);
-      let newEndIndex = newStartIndex + newVisibleCount - 1;
-
-      // 边界检查
-      if (newStartIndex < 0) {
-        newStartIndex = 0;
-        newEndIndex = Math.min(data.length - 1, newVisibleCount - 1);
-      }
-
-      if (newEndIndex >= data.length) {
-        newEndIndex = data.length - 1;
-        newStartIndex = Math.max(0, newEndIndex - newVisibleCount + 1);
-      }
-
-      setVisibleRange({
-        startIndex: newStartIndex,
-        endIndex: newEndIndex,
-      });
-    },
-    [data.length, innerWidth, margin.left, visibleRange]
-  );
-
-  // 使用 useEffect 添加非被动的 wheel 事件监听器
-  useEffect(() => {
-    const svgElement = svgRef.current;
-
-    if (!svgElement) return;
-
-    const wheelHandler = (e: WheelEvent | Event) => {
-      e.preventDefault();
-
-      // 在这里我们不需要重复处理逻辑，只需阻止默认行为
-      // 实际的缩放逻辑仍由 onWheel={handleWheel} 处理
-    };
-
-    // 添加非被动事件监听器
-    svgElement.addEventListener("wheel", wheelHandler, { passive: false });
-
-    // 清理函数
-    return () => {
-      svgElement.removeEventListener("wheel", wheelHandler);
-    };
-  }, []);
 
   // 处理鼠标移动事件
   const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
