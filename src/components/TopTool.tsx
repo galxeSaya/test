@@ -5,6 +5,7 @@ import { ReactComponent as ExpandIcon } from "../assets/Expand.svg";
 import { ReactComponent as SnapShotIcon } from "../assets/SnapShot.svg";
 import { Fragment, useState } from "react";
 
+
 export enum INTERVAL_ITEM {
   '1s' = '1s',
   '15s' = '15s',
@@ -52,7 +53,7 @@ const TopTool = ({
           <span>Bitcoin</span>
         </div>
         <div>
-
+          
         </div>
       </div>
       <div className="flex items-center gap-2">

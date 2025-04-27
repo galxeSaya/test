@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
-import { DECREASE_COLOR, DEFAULT_COLOR, INCREASE_COLOR, TTooltipData } from "./VisxCandleStickChartV2";
+import {
+  DECREASE_COLOR,
+  DEFAULT_COLOR,
+  INCREASE_COLOR,
+  TTooltipData,
+} from "./VisxCandleStickChartV2";
 
 const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
   const [priceColor, setPriceColor] = useState(DEFAULT_COLOR);
@@ -7,11 +12,11 @@ const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
   const props = useMemo(() => {
     setPriceColor(DEFAULT_COLOR);
     let res = {
-      O: "-",
-      H: "-",
-      L: "-",
-      C: "-",
-      volume: "-",
+      O: "",
+      H: "",
+      L: "",
+      C: "",
+      volume: "",
     };
     if (tooltipData && tooltipData.candlePoint) {
       const data = tooltipData.candlePoint;
@@ -21,7 +26,7 @@ const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
       res.C = data.close.toFixed(2) || res.C;
       res.volume =
         ((data.volume as number) / 1000).toFixed(0) + "K" || res.volume;
-      setPriceColor(res.C > res.O ? INCREASE_COLOR : DECREASE_COLOR)
+      setPriceColor(res.C > res.O ? INCREASE_COLOR : DECREASE_COLOR);
     }
     return res;
   }, [tooltipData]);
@@ -35,32 +40,21 @@ const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
           <span>Uniswap</span>
         </div>
         <div className="flex gap-4 *:flex *:gap-1">
-          {
-            Object.entries(props).filter(([key]) => key !== 'volume').map(([key, value]) => (
+          {Object.entries(props)
+            .filter(([key, value]) => key !== "volume" && !!value)
+            .map(([key, value]) => (
               <div key={key} className="min-w-20">
                 <strong>{key}</strong>
                 <span style={{ color: priceColor }}>{value}</span>
               </div>
-            ))
-          }
-          {/* <div>
-            <strong>O</strong><span>{props.open}</span>
-          </div>
-          <div>
-            <strong>H</strong><span>{props.high}</span>
-          </div>
-          <div>
-            <strong>L</strong><span>{props.low}</span>
-          </div>
-          <div>
-            <strong>C</strong><span>{props.close}</span>
-          </div> */}
+            ))}
         </div>
       </div>
       <div className="flex gap-4 *:flex *:gap-1">
-        <div>
-          <strong>Volume</strong><span style={{ color: priceColor }}>{props.volume}</span>
-        </div>
+        {props.volume && <div>
+          <strong>Volume</strong>
+          <span style={{ color: priceColor }}>{props.volume}</span>
+        </div>}
       </div>
     </div>
   );
