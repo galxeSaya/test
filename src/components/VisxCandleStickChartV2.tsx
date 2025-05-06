@@ -830,18 +830,18 @@ export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
                     {hasNewsPoint && (
                       <g onMouseLeave={handleNewsPointMouseLeave}>
                         {/* 添加圆形的透明点击区域 (更适合距离检测) */}
-                        <circle
+                        {/* <circle
                           cx={x}
                           cy={highY - 10}
                           r={12}
                           fill="transparent"
                           style={{ cursor: "pointer" }}
-                        />
+                        /> */}
                         {/* 将可见的新闻标记从方形改为圆形 */}
                         <circle
                           cx={x}
                           cy={highY - 15}
-                          r={7} // 圆形半径为5，相当于原来10x10的方形
+                          r={Math.min(Math.max(candleWidth / 2, 3), 10)} 
                           fill="blue"
                           stroke="#fff"
                           strokeWidth={1}
