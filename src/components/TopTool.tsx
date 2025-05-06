@@ -57,7 +57,7 @@ const TopTool = ({
           <img src={BtcIcon} alt="btc" className="w-4 h-4 rounded-full mr-2" />
           <span>Bitcoin</span>
         </div>
-        <div>
+        {!isMini && <div>
           <ul className="flex items-center gap-2">
             {intervalList.slice(0, 2).map(interval => (
               <li
@@ -120,7 +120,7 @@ const TopTool = ({
               )}
             </li>
           </ul>
-        </div>
+        </div>}
       </div>
       <div className="flex items-center gap-2">
         {!isMini && (
