@@ -5,6 +5,12 @@ import { ReactComponent as ExpandIcon } from "../assets/Expand.svg";
 import { ReactComponent as SnapShotIcon } from "../assets/SnapShot.svg";
 import { Fragment, useState } from "react";
 
+export type TSwitchInterval = ({
+  interval
+}: {
+  interval: TINTERVAL_ITEM;
+}) => void
+
 export enum INTERVAL_ITEM {
   "1s" = "1s",
   "15s" = "15s",
@@ -25,7 +31,7 @@ export enum INTERVAL_ITEM {
   "1mo" = "1mo",
 }
 
-type TINTERVAL_ITEM = keyof typeof INTERVAL_ITEM;
+export type TINTERVAL_ITEM = keyof typeof INTERVAL_ITEM;
 
 const INTERVAL_LIST: INTERVAL_ITEM[] = Object.values(INTERVAL_ITEM);
 
@@ -37,18 +43,27 @@ const TopTool = ({
   toogleMini,
   toogleExpand,
   handleSnapShot,
+  switchInterval
 }: {
   isMini?: boolean;
   isExpand?: boolean;
   toogleMini?: () => void;
   toogleExpand?: () => void;
   handleSnapShot?: () => void;
+  switchInterval?: TSwitchInterval;
   defaultInterval?: TINTERVAL_ITEM;
   intervalList?: INTERVAL_ITEM[];
 }) => {
   const [curInterVal, setCurInterVal] =
     useState<TINTERVAL_ITEM>(defaultInterval);
   const [showLeftInterval, setShowLeftInterval] = useState(false);
+
+  const changeInterval = (interval: TINTERVAL_ITEM) => {
+    setCurInterVal(interval);
+    if (switchInterval) {
+      switchInterval && switchInterval({ interval });
+    }
+  };
 
   return (
     <div className="flex justify-between items-center px-6 py-3">
@@ -70,7 +85,7 @@ const TopTool = ({
                   }
                 )}
                 onClick={() => {
-                  setCurInterVal(interval);
+                  changeInterval(interval);
                   setShowLeftInterval(false);
                 }}>
                 {interval}
@@ -110,7 +125,7 @@ const TopTool = ({
                         }
                       )}
                       onClick={() => {
-                        setCurInterVal(interval);
+                        changeInterval(interval);
                         setShowLeftInterval(false);
                       }}>
                       {interval}

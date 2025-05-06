@@ -15,7 +15,7 @@ import { TooltipWithBounds, defaultStyles } from "@visx/tooltip";
 import { CandleStickPoint, CandleStickNewsPoint } from "../types/candlestick";
 import { Bar, Line } from "@visx/shape"; // 添加Line导入
 import PriceTip from "./PriceTip";
-import TopTool from "./TopTool";
+import TopTool, { TSwitchInterval } from "./TopTool";
 import clsx from "clsx";
 import { toPng } from "html-to-image";
 
@@ -38,12 +38,14 @@ const noSelectStyle = {
   msUserSelect: "none",
 };
 
+
 interface VisxCandleStickChartProps {
   width: number;
   height: number;
   data: CandleStickPoint[];
   newsPoints: CandleStickNewsPoint[];
   margin?: { top: number; right: number; bottom: number; left: number };
+  switchInterval?: TSwitchInterval
 }
 
 // Tooltip 样式
@@ -66,13 +68,14 @@ export type TTooltipData = {
   isHoveringNewsPoint: boolean;
 };
 
-export const VisxCandleStickChartV2: React.FC<VisxCandleStickChartProps> = ({
+export const VisxCandleStickChartV2= ({
   width,
   height,
   data,
   newsPoints,
   margin = { top: 10, right: 60, bottom: 50, left: 10 },
-}) => {
+  switchInterval
+}: VisxCandleStickChartProps) => {
   const [tooltipData, setTooltipData] = useState<TTooltipData>();
   const [chartHeight, setChartHeight] = useState(height);
   const [chartWidth, setChartWidth] = useState(width);
