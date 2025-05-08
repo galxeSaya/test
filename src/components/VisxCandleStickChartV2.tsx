@@ -5,6 +5,7 @@ import React, {
   WheelEvent,
   useRef,
   useEffect,
+  ComponentProps,
 } from "react";
 import { scaleLinear, scaleTime } from "@visx/scale";
 import { AxisRight, AxisBottom } from "@visx/axis";
@@ -15,7 +16,7 @@ import { TooltipWithBounds, defaultStyles } from "@visx/tooltip";
 import { CandleStickPoint, CandleStickNewsPoint } from "../types/candlestick";
 import { Bar, Line } from "@visx/shape"; // 添加Line导入
 import PriceTip from "./PriceTip";
-import TopTool, { TSwitchInterval } from "./TopTool";
+import TopTool from "./TopTool";
 import clsx from "clsx";
 import { toPng } from "html-to-image";
 
@@ -38,14 +39,15 @@ const noSelectStyle = {
   msUserSelect: "none",
 };
 
-
 interface VisxCandleStickChartProps {
   width: number;
   height: number;
   data: CandleStickPoint[];
   newsPoints: CandleStickNewsPoint[];
   margin?: { top: number; right: number; bottom: number; left: number };
-  switchInterval?: TSwitchInterval
+  defaultInterval?: ComponentProps<typeof TopTool>["defaultInterval"];
+  intervalList?: ComponentProps<typeof TopTool>["intervalList"];
+  switchInterval?: ComponentProps<typeof TopTool>["switchInterval"];
 }
 
 // Tooltip 样式
@@ -68,13 +70,15 @@ export type TTooltipData = {
   isHoveringNewsPoint: boolean;
 };
 
-export const VisxCandleStickChartV2= ({
+export const VisxCandleStickChartV2 = ({
   width,
   height,
   data,
   newsPoints,
   margin = { top: 10, right: 60, bottom: 50, left: 10 },
-  switchInterval
+  defaultInterval,
+  intervalList,
+  switchInterval,
 }: VisxCandleStickChartProps) => {
   const [tooltipData, setTooltipData] = useState<TTooltipData>();
   const [chartHeight, setChartHeight] = useState(height);
@@ -103,11 +107,10 @@ export const VisxCandleStickChartV2= ({
   });
 
   // 计算图表区域尺寸
-  const innerWidth = useMemo(() => chartWidth - margin.left - margin.right, [
-    chartWidth,
-    margin.left,
-    margin.right,
-  ]);
+  const innerWidth = useMemo(
+    () => chartWidth - margin.left - margin.right,
+    [chartWidth, margin.left, margin.right]
+  );
   const innerHeight = useMemo(
     () => chartHeight - margin.top - margin.bottom,
     [chartHeight, margin.top, margin.bottom]
@@ -505,20 +508,20 @@ export const VisxCandleStickChartV2= ({
     // 立即更新当前尺寸
     setChartWidth(width);
     setChartHeight(height);
-    
+
     // 创建窗口大小变化的事件处理函数
     const handleResize = () => {
       // 如果组件包装器存在，使用其宽度
       if (wrapRef.current) {
         setChartWidth(wrapRef.current.clientWidth);
         if (isExpanded) {
-          setChartHeight(wrapRef.current.clientHeight - 50)
+          setChartHeight(wrapRef.current.clientHeight - 50);
         } else {
-          setChartHeight(height)
+          setChartHeight(height);
         }
       } else {
         setChartWidth(width);
-        setChartHeight(height)
+        setChartHeight(height);
       }
 
       // 如果不是迷你模式，也更新高度
@@ -526,13 +529,13 @@ export const VisxCandleStickChartV2= ({
         setChartHeight(height);
       } */
     };
-    
+
     // 添加窗口大小变化监听器
-    window.addEventListener('resize', handleResize);
-    
+    window.addEventListener("resize", handleResize);
+
     // 组件卸载时清理事件监听器
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
     };
   }, [width, height, isMini, isExpanded]);
 
@@ -541,7 +544,7 @@ export const VisxCandleStickChartV2= ({
     const handleFullScreenChange = () => {
       // 检查当前是否真的处于全屏状态
       const isFullScreen = !!document.fullscreenElement;
-      
+
       // 如果全屏状态与组件状态不一致，更新组件状态
       if (isFullScreen !== isExpanded) {
         setIsExpanded(isFullScreen);
@@ -549,18 +552,27 @@ export const VisxCandleStickChartV2= ({
     };
 
     // 添加全屏变化事件监听器
-    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    document.addEventListener("fullscreenchange", handleFullScreenChange);
     // 对不同浏览器添加相应的事件监听
-    document.addEventListener('webkitfullscreenchange', handleFullScreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullScreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullScreenChange);
-    
+    document.addEventListener("webkitfullscreenchange", handleFullScreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullScreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullScreenChange);
+
     // 组件卸载时清理事件监听器
     return () => {
-      document.removeEventListener('fullscreenchange', handleFullScreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullScreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullScreenChange);
-      document.removeEventListener('MSFullscreenChange', handleFullScreenChange);
+      document.removeEventListener("fullscreenchange", handleFullScreenChange);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        handleFullScreenChange
+      );
+      document.removeEventListener(
+        "mozfullscreenchange",
+        handleFullScreenChange
+      );
+      document.removeEventListener(
+        "MSFullscreenChange",
+        handleFullScreenChange
+      );
     };
   }, [isExpanded]);
 
@@ -588,9 +600,9 @@ export const VisxCandleStickChartV2= ({
       handleDragMove(event);
       return;
     }
-    
+
     if (tooltipTimerRef.current || isInNewsTip.current) return;
-    
+
     const { x, y } = localPoint(event) || { x: 0, y: 0 };
 
     // 超出图表区域时不处理
@@ -688,27 +700,24 @@ export const VisxCandleStickChartV2= ({
     }
   };
   const handleSnapShot = async () => {
-
-
     if (!chartWrapRef.current) return;
-      
+
     try {
       // 生成图片数据URL
       const dataUrl = await toPng(chartWrapRef.current, {
-        quality: 1,       // 图片质量 (0-1)
-        backgroundColor: '#ffffff', // 背景色
-        pixelRatio: 2     // 提高分辨率
+        quality: 1, // 图片质量 (0-1)
+        backgroundColor: "#ffffff", // 背景色
+        pixelRatio: 2, // 提高分辨率
       });
 
       // 创建下载链接
-      const link = document.createElement('a');
-      link.download = 'snapshot.png';  // 下载文件名
+      const link = document.createElement("a");
+      link.download = "snapshot.png"; // 下载文件名
       link.href = dataUrl;
       link.click();
     } catch (error) {
-      console.error('生成图片失败:', error);
+      console.error("生成图片失败:", error);
     }
-
   };
 
   return (
@@ -719,6 +728,9 @@ export const VisxCandleStickChartV2= ({
         toogleExpand={toogleExpand}
         handleSnapShot={handleSnapShot}
         isExpand={isExpanded}
+        switchInterval={switchInterval}
+        defaultInterval={defaultInterval}
+        intervalList={intervalList}
       />
       <div
         className={clsx("relative", {
@@ -844,7 +856,7 @@ export const VisxCandleStickChartV2= ({
                         <circle
                           cx={x}
                           cy={highY - 15}
-                          r={Math.min(Math.max(candleWidth / 2, 3), 10)} 
+                          r={Math.min(Math.max(candleWidth / 2, 3), 10)}
                           fill="blue"
                           stroke="#fff"
                           strokeWidth={1}
