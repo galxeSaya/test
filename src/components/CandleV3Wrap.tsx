@@ -8,6 +8,15 @@ import {
 import { useEffect, useState } from "react";
 import { CandleStickNewsPoint, CandleStickPoint } from "../types/candlestickV3";
 
+// todo 
+// 1. scale  工具条
+// 2. 左右边界触发数据变更
+// 3. 复现新闻弹窗不出现的问题
+// 4. 新闻弹窗 字段修改通用化表示的字段名称
+// 5. 抽离弹窗部分
+// 6. 传入不同的弹窗展示不同的数据形式 
+// 7. 同时展示两种不同的弹窗内容
+
 const defaultInterval = "15m";
 
 const getRandomNum = (max: number) => Math.ceil(Math.random() * max);
