@@ -41,6 +41,7 @@ const noSelectStyle = {
 };
 
 interface VisxCandleStickChartProps {
+  isLoading?: boolean;
   width: number;
   height: number;
   data: CandleStickPoint[];
@@ -70,8 +71,16 @@ export type TTooltipData = {
   y: number;
   isHoveringNewsPoint: boolean;
 };
+// 数据访问器
+const getDate = (d: CandleStickPoint) => d.date;
+const getOpen = (d: CandleStickPoint) => d.open;
+const getClose = (d: CandleStickPoint) => d.close;
+const getHigh = (d: CandleStickPoint) => d.high;
+const getLow = (d: CandleStickPoint) => d.low;
+const getVolume = (d: CandleStickPoint) => d.volume;
 
 export const VisxCandleStickChartV3 = ({
+  isLoading,
   width,
   height,
   data,
@@ -107,6 +116,13 @@ export const VisxCandleStickChartV3 = ({
     endIndex: data.length - 1,
   });
 
+  useEffect(() => {
+    setVisibleRange({
+    startIndex: Math.max(0, data.length - DEFAULT_VISIBLE_ITEMS),
+    endIndex: data.length - 1,
+  })
+  }, [data]);
+
   // 计算图表区域尺寸
   const innerWidth = useMemo(
     () => chartWidth - margin.left - margin.right,
@@ -134,14 +150,6 @@ export const VisxCandleStickChartV3 = ({
       return newsTime >= startDate && newsTime <= endDate;
     });
   }, [visibleData, newsPoints]);
-
-  // 数据访问器
-  const getDate = (d: CandleStickPoint) => d.date;
-  const getOpen = (d: CandleStickPoint) => d.open;
-  const getClose = (d: CandleStickPoint) => d.close;
-  const getHigh = (d: CandleStickPoint) => d.high;
-  const getLow = (d: CandleStickPoint) => d.low;
-  const getVolume = (d: CandleStickPoint) => d.volume;
 
   // 创建比例尺 - 使用visibleData而不是全部数据
   const xScale = useMemo(() => {
@@ -221,9 +229,7 @@ export const VisxCandleStickChartV3 = ({
   const getNewsPointForDate = (
     date: number
   ): CandleStickNewsPoint | undefined => {
-    return visibleNewsPoints.find(
-      newsPoint => newsPoint.date === date
-    );
+    return visibleNewsPoints.find(newsPoint => newsPoint.date === date);
   };
 
   // 添加状态跟踪鼠标位置
@@ -632,6 +638,7 @@ export const VisxCandleStickChartV3 = ({
     }, 0);
 
     const candlePoint = visibleData[index];
+
     const newsPoint = getNewsPointForDate(candlePoint.date);
 
     // 默认假设不是在新闻点上悬停
@@ -722,7 +729,7 @@ export const VisxCandleStickChartV3 = ({
   };
 
   return (
-    <div ref={wrapRef} className="bg-white">
+    <div ref={wrapRef} className="bg-white relative">
       <TopTool
         toogleMini={() => setIsMini(!isMini)}
         isMini={isMini}
@@ -815,9 +822,7 @@ export const VisxCandleStickChartV3 = ({
                   : DECREASE_COLOR;
 
                 // 确定是否有关联的新闻点
-                const hasNewsPoint = newsPoints.some(
-                  np => np.date === d.date
-                );
+                const hasNewsPoint = newsPoints.some(np => np.date === d.date);
 
                 return (
                   <Group key={`candle-${i}`}>
@@ -970,7 +975,9 @@ export const VisxCandleStickChartV3 = ({
 
                     // 使用实际数据点的时间
                     const pointDate = visibleData[index].date;
-                    const dateText = dayjs(pointDate).format("YYYY/MM/DD HH:mm:ss");
+                    const dateText = dayjs(pointDate).format(
+                      "YYYY/MM/DD HH:mm:ss"
+                    );
                     // 估计文本宽度 + 两侧各5px内边距
                     const estimatedWidth = dateText.length * 6;
 
@@ -1025,6 +1032,11 @@ export const VisxCandleStickChartV3 = ({
             )}
         </div>
       </div>
+      {isLoading && (
+        <div className="absolute top-0 right-0 bottom-0 left-0 flex items-center justify-center z-10 bg-slate-500 bg-opacity-50">
+          loading...
+        </div>
+      )}
     </div>
   );
 };

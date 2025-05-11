@@ -2,14 +2,40 @@ import { ParentSize } from "@visx/responsive";
 import { ErrorBoundary } from "../App";
 import VisxCandleStickChart from "./VisxCandleStickChartV3";
 import {
-  sampleCandleData,
-  sampleCandleNewsPoints,
+  generateCandleStickData,
+  generateNewsPoints,
 } from "../data/sampleCandleDataV3";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { CandleStickNewsPoint, CandleStickPoint } from "../types/candlestickV3";
+
+const defaultInterval = "15m";
+
+const getRandomNum = (max: number) => Math.ceil(Math.random() * max);
 
 const CandleV2Wrap = () => {
-  const [data, setData] = useState(sampleCandleData);
-  const [newsPoints, setNewsPoints] = useState(sampleCandleNewsPoints);
+  const [data, setData] = useState<CandleStickPoint[]>([]);
+  const [newsPoints, setNewsPoints] = useState<CandleStickNewsPoint[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setIsLoading(true);
+    generateCandleStickData({
+      num: getRandomNum(300),
+      interval: defaultInterval,
+    })
+      .then(res => {
+        setData(res);
+        return generateNewsPoints(res, 5);
+      })
+      .then(res => {
+        setNewsPoints(res);
+        setIsLoading(false);
+      })
+      .catch(error => {
+        console.error("Error generating data:", error);
+        setIsLoading(false);
+      });
+  }, []);
 
   return (
     <>
@@ -20,16 +46,32 @@ const CandleV2Wrap = () => {
             {({ width, height }) =>
               width > 0 ? (
                 <VisxCandleStickChart
-                  defaultInterval="15m"
+                  isLoading={isLoading}
+                  defaultInterval={defaultInterval}
                   intervalList={["1m", "5m", "15m", "30m", "1h", "4h", "1d"]}
                   width={width}
                   height={500} // 提供一个初始高度
                   data={data}
                   newsPoints={newsPoints}
-                  switchInterval={({
-                    interval,
-                  }) => {
+                  switchInterval={({ interval }) => {
                     console.log("switchInterval", interval);
+                    setIsLoading(true);
+                    generateCandleStickData({
+                      num: getRandomNum(300),
+                      interval,
+                    })
+                      .then(res => {
+                        setData(res);
+                        return generateNewsPoints(res, 5);
+                      })
+                      .then(res => {
+                        setNewsPoints(res);
+                        setIsLoading(false);
+                      })
+                      .catch(error => {
+                        console.error("Error generating data:", error);
+                        setIsLoading(false);
+                      });
                   }}
                 />
               ) : (
@@ -43,7 +85,7 @@ const CandleV2Wrap = () => {
       </div>
 
       <div className="mt-4 text-sm text-gray-600">
-        <p>提示: 红色方块代表新闻事件，悬停在上面可查看详情。</p>
+        <p>提示: 蓝色圆代表新闻事件，悬停在上面可查看详情。</p>
       </div>
     </>
   );
