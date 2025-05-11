@@ -1,10 +1,10 @@
 import { ParentSize } from "@visx/responsive";
 import { ErrorBoundary } from "../App";
-import VisxCandleStickChartV2 from "./VisxCandleStickChartV2";
+import VisxCandleStickChart from "./VisxCandleStickChartV3";
 import {
   sampleCandleData,
   sampleCandleNewsPoints,
-} from "../data/sampleCandleData";
+} from "../data/sampleCandleDataV3";
 import { useState } from "react";
 
 const CandleV2Wrap = () => {
@@ -19,7 +19,7 @@ const CandleV2Wrap = () => {
           <ParentSize debounceTime={50}>
             {({ width, height }) =>
               width > 0 ? (
-                <VisxCandleStickChartV2
+                <VisxCandleStickChart
                   defaultInterval="15m"
                   intervalList={["1m", "5m", "15m", "30m", "1h", "4h", "1d"]}
                   width={width}

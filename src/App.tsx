@@ -6,7 +6,8 @@ import VisxCandleStickChartV2 from './components/VisxCandleStickChartV2';
 import { ParentSize } from '@visx/responsive';
 import { sampleData, sampleNewsPoints } from './data/sampleData';
 import { sampleCandleData, sampleCandleNewsPoints } from './data/sampleCandleData'; */
-import CandleV2Wrap from './components/CandleV2Wrap';
+// import CandleV2Wrap from './components/CandleV2Wrap';
+import CandleV3Wrap from './components/CandleV3Wrap';
 
 // 添加错误边界组件
 export class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
@@ -95,7 +96,8 @@ const App = () => {
       </div> */}
       
       {/* ViSX 蜡烛图实现 V2 */}
-      <CandleV2Wrap />
+      {/* <CandleV2Wrap /> */}
+      <CandleV3Wrap />
     </div>
   );
 };
