@@ -92,7 +92,7 @@ export const  generateCandleStickData = ({
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(res);
-    }, 3000); // 模拟网络延迟
+    }, 1000); // 模拟网络延迟
   })
 }
 
@@ -123,7 +123,7 @@ export function generateNewsPoints(data: CandleStickPoint[], count: number): Pro
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(newsPoints);
-    }, 3000); // 模拟网络延迟
+    }, 1000); // 模拟网络延迟
   });
 }
 
