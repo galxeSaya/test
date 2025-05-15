@@ -4,12 +4,13 @@ import { ReactComponent as ArrowIcon } from "../assets/Arrow.svg";
 import { ReactComponent as ExpandIcon } from "../assets/Expand.svg";
 import { ReactComponent as SnapShotIcon } from "../assets/SnapShot.svg";
 import { Fragment, useState } from "react";
+import { getIsMobile } from "../utils";
 
 export type TSwitchInterval = ({
-  interval
+  interval,
 }: {
   interval: TINTERVAL_ITEM;
-}) => void
+}) => void;
 
 export enum INTERVAL_ITEM {
   "1s" = "1s",
@@ -43,7 +44,7 @@ const TopTool = ({
   toogleMini,
   toogleExpand,
   handleSnapShot,
-  switchInterval
+  switchInterval,
 }: {
   isMini?: boolean;
   isExpand?: boolean;
@@ -54,11 +55,13 @@ const TopTool = ({
   defaultInterval?: TINTERVAL_ITEM;
   intervalList?: TINTERVAL_ITEM[];
 }) => {
+  const isMobile = getIsMobile();
   const [curInterVal, setCurInterVal] =
     useState<TINTERVAL_ITEM>(defaultInterval);
   const [showLeftInterval, setShowLeftInterval] = useState(false);
 
   const changeInterval = (interval: TINTERVAL_ITEM) => {
+    if (interval === curInterVal) return;
     setCurInterVal(interval);
     if (switchInterval) {
       switchInterval && switchInterval({ interval });
@@ -66,13 +69,16 @@ const TopTool = ({
   };
 
   return (
-    <div className="flex justify-between items-center px-6 py-3">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center">
-          <img src={BtcIcon} alt="btc" className="w-4 h-4 rounded-full mr-2" />
-          <span>Bitcoin</span>
-        </div>
-        {!isMini && <div>
+    <div className="flex justify-start flex-wrap items-center px-6 py-3">
+      <div
+        className={clsx("flex items-center", {
+          "w-full": isMobile,
+        })}>
+        <img src={BtcIcon} alt="btc" className="w-4 h-4 rounded-full mr-2" />
+        <span>Bitcoin</span>
+      </div>
+      {!isMini && (
+        <div>
           <ul className="flex items-center gap-2">
             {intervalList.slice(0, 2).map(interval => (
               <li
@@ -98,9 +104,7 @@ const TopTool = ({
                   "bg-gray-200 text-gray-800": intervalList
                     .slice(2)
                     .includes(curInterVal),
-                  "text-gray-400": !intervalList
-                    .slice(2)
-                    .includes(curInterVal),
+                  "text-gray-400": !intervalList.slice(2).includes(curInterVal),
                 }
               )}
               onClick={() => setShowLeftInterval(!showLeftInterval)}>
@@ -135,9 +139,9 @@ const TopTool = ({
               )}
             </li>
           </ul>
-        </div>}
-      </div>
-      <div className="flex items-center gap-2">
+        </div>
+      )}
+      <div className="flex items-center gap-2 mr-0 ml-auto">
         {!isMini && (
           <Fragment>
             <div

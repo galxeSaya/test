@@ -20,6 +20,7 @@ import TopTool from "./TopToolV3";
 import clsx from "clsx";
 import { toPng } from "html-to-image";
 import dayjs from "dayjs";
+import BottomToolV3 from "./BottomToolV3";
 
 // 默认显示的数据点数量
 const DEFAULT_VISIBLE_ITEMS = 50;
@@ -27,6 +28,8 @@ const DEFAULT_VISIBLE_ITEMS = 50;
 const ZOOM_FACTOR = 0.1;
 // 最小可见数据点数量
 const MIN_VISIBLE_ITEMS = 5;
+// 底部工具栏调整范围 步进数
+const STEP_ITEMS = 10;
 
 export const INCREASE_COLOR = "#4caf50"; // 绿色
 export const DECREASE_COLOR = "#ff5722"; // 红色
@@ -110,17 +113,22 @@ export const VisxCandleStickChartV3 = ({
     endIndex: 0,
   });
 
+  const getDefaultVisibleRange = useCallback(
+    () => ({
+      startIndex: Math.max(0, data.length - DEFAULT_VISIBLE_ITEMS),
+      endIndex: data.length - 1,
+    }),
+    [data.length]
+  );
+
   // 数据范围状态 - 初始化为显示末尾的50个数据点
-  const [visibleRange, setVisibleRange] = useState({
-    startIndex: Math.max(0, data.length - DEFAULT_VISIBLE_ITEMS),
-    endIndex: data.length - 1,
-  });
+  const [visibleRange, setVisibleRange] = useState(getDefaultVisibleRange());
 
   useEffect(() => {
     setVisibleRange({
-    startIndex: Math.max(0, data.length - DEFAULT_VISIBLE_ITEMS),
-    endIndex: data.length - 1,
-  })
+      startIndex: Math.max(0, data.length - DEFAULT_VISIBLE_ITEMS),
+      endIndex: data.length - 1,
+    });
   }, [data]);
 
   // 计算图表区域尺寸
@@ -707,6 +715,7 @@ export const VisxCandleStickChartV3 = ({
       } */
     }
   };
+
   const handleSnapShot = async () => {
     if (!chartWrapRef.current) return;
 
@@ -728,6 +737,66 @@ export const VisxCandleStickChartV3 = ({
     }
   };
 
+  const updateRangeFn = (
+    type: "add" | "decrease" | "left" | "right" | "refresh"
+  ) => {
+    const { startIndex, endIndex } = visibleRange;
+    let newStartIndex = startIndex;
+    let newEndIndex = endIndex;
+
+    switch (type) {
+      case "add":
+        newStartIndex = Math.max(startIndex - STEP_ITEMS, 0);
+        newEndIndex = Math.min(endIndex + STEP_ITEMS, data.length - 1);
+        break;
+      case "decrease":
+        // 如果当前范围内的数据点数量大于最小可见数据点数量
+        if (newEndIndex - newStartIndex + 1 > MIN_VISIBLE_ITEMS) {
+          newStartIndex = Math.min(startIndex + STEP_ITEMS, data.length - 1);
+          newEndIndex = Math.max(endIndex - STEP_ITEMS, 0);
+        }
+        break;
+      case "left":
+        // 如果不在开头
+        if (newStartIndex !== 0) {
+          newStartIndex = Math.max(startIndex - STEP_ITEMS, 0);
+          newEndIndex = Math.max(endIndex - STEP_ITEMS, 0);
+        }
+        break;
+      case "right":
+        // 如果不在结尾
+        if (newEndIndex !== data.length - 1) {
+          newStartIndex = Math.min(startIndex + STEP_ITEMS, data.length - 1);
+          newEndIndex = Math.min(endIndex + STEP_ITEMS, data.length - 1);
+        }
+        break;
+      case "refresh":
+        const deafaultRange = getDefaultVisibleRange();
+        newStartIndex = deafaultRange.startIndex;
+        newEndIndex = deafaultRange.endIndex;
+        break;
+      default:
+        break;
+    }
+    if (newEndIndex - newStartIndex + 1 < MIN_VISIBLE_ITEMS) {
+      if (newEndIndex === newStartIndex && newEndIndex === data.length - 1) {
+        newStartIndex = Math.max(0, newEndIndex - MIN_VISIBLE_ITEMS + 1);
+      } else if (newEndIndex === newStartIndex && newStartIndex === 0) {
+        newEndIndex = Math.min(
+          data.length - 1,
+          newStartIndex + MIN_VISIBLE_ITEMS - 1
+        );
+      } else {
+        newEndIndex = newStartIndex + MIN_VISIBLE_ITEMS - 1;
+      }
+    }
+    
+    setVisibleRange({
+      startIndex: newStartIndex,
+      endIndex: newEndIndex,
+    });
+  };
+
   return (
     <div ref={wrapRef} className="bg-white relative">
       <TopTool
@@ -741,7 +810,7 @@ export const VisxCandleStickChartV3 = ({
         intervalList={intervalList}
       />
       <div
-        className={clsx("relative", {
+        className={clsx("relative group", {
           hidden: isMini,
         })}
         ref={chartWrapRef}
@@ -1031,6 +1100,13 @@ export const VisxCandleStickChartV3 = ({
               </TooltipWithBounds>
             )}
         </div>
+        <BottomToolV3
+          addRangeFn={() => updateRangeFn("add")}
+          decreaseRangeFn={() => updateRangeFn("decrease")}
+          refreshFn={() => updateRangeFn("refresh")}
+          leftMoveFn={() => updateRangeFn("left")}
+          rightMoveFn={() => updateRangeFn("right")}
+        />
       </div>
       {isLoading && (
         <div className="absolute top-0 right-0 bottom-0 left-0 flex items-center justify-center z-10 bg-slate-500 bg-opacity-50">

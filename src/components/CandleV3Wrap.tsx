@@ -7,14 +7,15 @@ import {
 } from "../data/sampleCandleDataV3";
 import { useEffect, useState } from "react";
 import { CandleStickNewsPoint, CandleStickPoint } from "../types/candlestickV3";
+import { getIsMobile } from "../utils";
 
-// todo 
-// 1. scale  工具条
+// todo
+// 1. scale  工具条 -- done
 // 2. 左右边界触发数据变更
 // 3. 复现新闻弹窗不出现的问题
 // 4. 新闻弹窗 字段修改通用化表示的字段名称
 // 5. 抽离弹窗部分
-// 6. 传入不同的弹窗展示不同的数据形式 
+// 6. 传入不同的弹窗展示不同的数据形式
 // 7. 同时展示两种不同的弹窗内容
 
 const defaultInterval = "15m";
@@ -22,6 +23,7 @@ const defaultInterval = "15m";
 const getRandomNum = (max: number) => Math.ceil(Math.random() * max);
 
 const CandleV2Wrap = () => {
+  const isMobile = getIsMobile();
   const [data, setData] = useState<CandleStickPoint[]>([]);
   const [newsPoints, setNewsPoints] = useState<CandleStickNewsPoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -59,7 +61,7 @@ const CandleV2Wrap = () => {
                   defaultInterval={defaultInterval}
                   intervalList={["1m", "5m", "15m", "30m", "1h", "4h", "1d"]}
                   width={width}
-                  height={500} // 提供一个初始高度
+                  height={isMobile ? 300 : 500} // 提供一个初始高度
                   data={data}
                   newsPoints={newsPoints}
                   switchInterval={({ interval }) => {
