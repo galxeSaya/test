@@ -669,7 +669,6 @@ export const VisxCandleStickChartV3 = ({
         // 鼠标在新闻点上，清除任何现有的隐藏计时器
         if (tooltipTimerRef.current !== null) {
           window.clearTimeout(tooltipTimerRef.current);
-          tooltipTimerRef.current = null;
         }
       }
     }
@@ -797,6 +796,254 @@ export const VisxCandleStickChartV3 = ({
     });
   };
 
+  // 触摸相关状态
+  const [touchStartPos, setTouchStartPos] = useState<{ x: number, y: number } | null>(null);
+  const [prevTouchDistance, setPrevTouchDistance] = useState<number | null>(null);
+  const [touchStartTime, setTouchStartTime] = useState<number>(0);
+  const [lastTapTime, setLastTapTime] = useState<number>(0);
+
+  // 计算两个触摸点之间的距离
+  const getTouchDistance = (touches: React.TouchList): number => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // 处理触摸开始事件
+  const handleTouchStart = useCallback((event: React.TouchEvent<SVGSVGElement>) => {
+    event.preventDefault();
+    const currentTime = Date.now();
+    setTouchStartTime(currentTime);
+
+    // 检测双击 (300ms内的两次点击)
+    if (currentTime - lastTapTime < 300 && event.touches.length === 1) {
+      // 双击执行重置视图
+      updateRangeFn("refresh");
+      setLastTapTime(0); // 重置记录，避免连续触发
+      return;
+    }
+    
+    setLastTapTime(currentTime);
+
+    // 单指操作 - 类似于鼠标拖动
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      const rect = event.currentTarget.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+
+      setTouchStartPos({ x, y });
+      setIsDragging(true);
+      setDragStartX(x);
+      setDragStartRange({ ...visibleRange });
+
+      // 显示十字线
+      setCrosshair({ x, y });
+
+      // 寻找最近的数据点，类似handleMouseMove
+      const x0 = xScale.invert(x - margin.left);
+      const index = visibleData.reduce((prev, curr, i) => {
+        return Math.abs(+getDate(curr) - +x0) <
+          Math.abs(+getDate(visibleData[prev]) - +x0)
+          ? i
+          : prev;
+      }, 0);
+
+      const candlePoint = visibleData[index];
+      const newsPoint = getNewsPointForDate(candlePoint.date);
+
+      setTooltipData({
+        candlePoint,
+        newsPoint,
+        x,
+        y,
+        isHoveringNewsPoint: false,
+      });
+    } 
+    // 双指操作 - 用于缩放
+    else if (event.touches.length === 2) {
+      setIsDragging(false);
+      const distance = getTouchDistance(event.touches);
+      setPrevTouchDistance(distance);
+    }
+  }, [visibleRange, xScale, visibleData, margin.left, getNewsPointForDate]);
+
+  // 处理触摸移动事件
+  const handleTouchMove = useCallback((event: React.TouchEvent<SVGSVGElement>) => {
+    event.preventDefault();
+    
+    // 单指拖动
+    if (event.touches.length === 1 && touchStartPos && isDragging) {
+      const touch = event.touches[0];
+      const rect = event.currentTarget.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      
+      // 更新十字线位置
+      setCrosshair({ x, y });
+      
+      // 计算拖动距离
+      const deltaX = x - dragStartX;
+      
+      // 与鼠标拖动逻辑相同
+      const visibleCount = dragStartRange.endIndex - dragStartRange.startIndex + 1;
+      const pointsPerPixel = visibleCount / innerWidth;
+      const pointsToMove = Math.round(deltaX * pointsPerPixel);
+      
+      if (pointsToMove === 0) return;
+      
+      let newStartIndex = dragStartRange.startIndex - pointsToMove;
+      let newEndIndex = dragStartRange.endIndex - pointsToMove;
+      
+      // 边界检查
+      if (newStartIndex < 0) {
+        newStartIndex = 0;
+        newEndIndex = newStartIndex + visibleCount - 1;
+      }
+      
+      if (newEndIndex >= data.length) {
+        newEndIndex = data.length - 1;
+        newStartIndex = Math.max(0, newEndIndex - visibleCount + 1);
+      }
+      
+      setVisibleRange({
+        startIndex: newStartIndex,
+        endIndex: newEndIndex,
+      });
+      
+      // 更新tooltip数据
+      const x0 = xScale.invert(x - margin.left);
+      const index = visibleData.reduce((prev, curr, i) => {
+        return Math.abs(+getDate(curr) - +x0) <
+          Math.abs(+getDate(visibleData[prev]) - +x0)
+          ? i
+          : prev;
+      }, 0);
+      
+      const candlePoint = visibleData[index];
+      const newsPoint = getNewsPointForDate(candlePoint.date);
+      
+      setTooltipData({
+        candlePoint,
+        newsPoint,
+        x,
+        y,
+        isHoveringNewsPoint: false,
+      });
+    }
+    // 双指缩放
+    else if (event.touches.length === 2 && prevTouchDistance !== null) {
+      const currentDistance = getTouchDistance(event.touches);
+      const ratio = currentDistance / prevTouchDistance;
+      
+      // 防止过小的变化引起抖动
+      if (Math.abs(ratio - 1) < 0.05) return;
+      
+      const isZoomIn = ratio > 1;
+      setPrevTouchDistance(currentDistance);
+      
+      // 计算当前可见数据点数量
+      const visibleCount = visibleRange.endIndex - visibleRange.startIndex + 1;
+      
+      // 计算新的可见数据点数量
+      let newVisibleCount = isZoomIn
+        ? Math.max(MIN_VISIBLE_ITEMS, Math.floor(visibleCount * 0.9))
+        : Math.min(data.length, Math.ceil(visibleCount * 1.1));
+      
+      // 确保在数据范围内
+      newVisibleCount = Math.min(newVisibleCount, data.length);
+      
+      // 计算缩放的中心点
+      const centerIndex = visibleRange.startIndex + Math.floor(visibleCount / 2);
+      
+      // 计算新的startIndex和endIndex
+      let newStartIndex = Math.floor(centerIndex - newVisibleCount / 2);
+      let newEndIndex = newStartIndex + newVisibleCount - 1;
+      
+      // 边界检查
+      if (newStartIndex < 0) {
+        newStartIndex = 0;
+        newEndIndex = Math.min(data.length - 1, newVisibleCount - 1);
+      }
+      
+      if (newEndIndex >= data.length) {
+        newEndIndex = data.length - 1;
+        newStartIndex = Math.max(0, newEndIndex - newVisibleCount + 1);
+      }
+      
+      setVisibleRange({
+        startIndex: newStartIndex,
+        endIndex: newEndIndex,
+      });
+    }
+  }, [
+    touchStartPos, isDragging, dragStartX, dragStartRange, innerWidth, 
+    data.length, xScale, margin.left, visibleData, getNewsPointForDate,
+    prevTouchDistance, visibleRange
+  ]);
+
+  // 处理触摸结束事件
+  const handleTouchEnd = useCallback((event: React.TouchEvent<SVGSVGElement>) => {
+    // 检测是否为短促的点击（检测新闻点）
+    const isTap = Date.now() - touchStartTime < 300;
+    
+    if (isTap && touchStartPos && tooltipData?.newsPoint) {
+      // 计算触摸点是否靠近新闻点
+      const newsPointDate = tooltipData.newsPoint.date;
+      const pointIndex = visibleData.findIndex(d => d.date === newsPointDate);
+      
+      if (pointIndex !== -1) {
+        const newsPoint = visibleData[pointIndex];
+        const newsPointX = xScale(getDate(newsPoint)) + margin.left;
+        const newsPointY = yScale(getHigh(newsPoint)) - 15 + margin.top;
+        
+        const dx = touchStartPos.x - newsPointX;
+        const dy = touchStartPos.y - newsPointY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // 如果点击位置够近，显示新闻详情
+        if (distance <= 20) {
+          setTooltipData({
+            ...tooltipData,
+            isHoveringNewsPoint: true,
+          });
+          
+          // 在一段时间后自动隐藏
+          if (tooltipTimerRef.current !== null) {
+            window.clearTimeout(tooltipTimerRef.current);
+          }
+          
+          tooltipTimerRef.current = window.setTimeout(() => {
+            setTooltipData(undefined);
+            tooltipTimerRef.current = null;
+          }, 3000);
+          
+          event.preventDefault();
+          return;
+        }
+      }
+    }
+    
+    // 重置触摸状态
+    setTouchStartPos(null);
+    setPrevTouchDistance(null);
+    setIsDragging(false);
+    
+    // 不立即清除十字线和tooltip，让用户可以看到最后一个数据点
+    setTimeout(() => {
+      if (!isDragging) {
+        setCrosshair(null);
+        if (!isInNewsTip.current) {
+          setTooltipData(undefined);
+        }
+      }
+    }, 2000);
+  }, [
+    touchStartTime, touchStartPos, tooltipData, visibleData, 
+    xScale, margin.left, yScale, margin.top, isDragging
+  ]);
+
   return (
     <div ref={wrapRef} className="bg-white relative">
       <TopTool
@@ -828,6 +1075,9 @@ export const VisxCandleStickChartV3 = ({
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onWheel={handleWheel}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             style={{
               cursor: isDragging ? "grabbing" : "default",
               // 确保SVG本身也禁用文本选择
@@ -835,6 +1085,7 @@ export const VisxCandleStickChartV3 = ({
               WebkitUserSelect: "none",
               MozUserSelect: "none",
               msUserSelect: "none",
+              touchAction: "none", // 禁用浏览器默认触摸行为
             }}>
             <Group left={margin.left} top={margin.top}>
               {/* 网格线 */}
