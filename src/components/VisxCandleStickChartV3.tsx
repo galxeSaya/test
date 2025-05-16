@@ -812,7 +812,6 @@ export const VisxCandleStickChartV3 = ({
 
   // 处理触摸开始事件
   const handleTouchStart = useCallback((event: React.TouchEvent<SVGSVGElement>) => {
-    event.preventDefault();
     const currentTime = Date.now();
     setTouchStartTime(currentTime);
 
@@ -871,8 +870,6 @@ export const VisxCandleStickChartV3 = ({
 
   // 处理触摸移动事件
   const handleTouchMove = useCallback((event: React.TouchEvent<SVGSVGElement>) => {
-    event.preventDefault();
-    
     // 单指拖动
     if (event.touches.length === 1 && touchStartPos && isDragging) {
       const touch = event.touches[0];
@@ -1019,7 +1016,6 @@ export const VisxCandleStickChartV3 = ({
             tooltipTimerRef.current = null;
           }, 3000);
           
-          event.preventDefault();
           return;
         }
       }
@@ -1043,6 +1039,30 @@ export const VisxCandleStickChartV3 = ({
     touchStartTime, touchStartPos, tooltipData, visibleData, 
     xScale, margin.left, yScale, margin.top, isDragging
   ]);
+
+  // 使用非被动事件监听器来处理触摸事件
+  useEffect(() => {
+    const svgElement = svgRef.current;
+    if (!svgElement) return;
+
+    // 为简化阻止原生触摸行为的函数
+    const preventTouchDefault = (e: TouchEvent) => {
+      // 阻止默认的触摸行为，如滚动、缩放等
+      e.preventDefault();
+    };
+
+    // 添加触摸事件的非被动监听器
+    svgElement.addEventListener('touchstart', preventTouchDefault, { passive: false });
+    svgElement.addEventListener('touchmove', preventTouchDefault, { passive: false });
+    svgElement.addEventListener('touchend', preventTouchDefault, { passive: false });
+
+    // 清理函数
+    return () => {
+      svgElement.removeEventListener('touchstart', preventTouchDefault);
+      svgElement.removeEventListener('touchmove', preventTouchDefault);
+      svgElement.removeEventListener('touchend', preventTouchDefault);
+    };
+  }, []);
 
   return (
     <div ref={wrapRef} className="bg-white relative">
