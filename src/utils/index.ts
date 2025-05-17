@@ -1,5 +1,5 @@
-export const getIsMobile = () =>
+/* export const getIsMobile = () =>
   typeof navigator !== "undefined" &&
-  /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  /iPhone|iPad|iPod|Android/i.test(navigator.userAgent); */
 
-// export const getIsMobile = () => true;
+export const getIsMobile = () => true;

@@ -8,6 +8,7 @@ import {
 import { useEffect, useState } from "react";
 import { CandleStickNewsPoint, CandleStickPoint } from "../types/candlestickV3";
 import { getIsMobile } from "../utils";
+import clsx from "clsx";
 
 // todo
 // 1. scale  工具条 -- done
@@ -24,6 +25,18 @@ import { getIsMobile } from "../utils";
 const defaultInterval = "15m";
 
 const getRandomNum = (max: number) => Math.ceil(Math.random() * max);
+
+const TooltipContent = (newsPoint: CandleStickNewsPoint) => {
+  const isMobile = getIsMobile();
+  return (
+    <div className={clsx({
+      "p-6": isMobile
+    })}>
+      <strong>{newsPoint.title}</strong>
+      <p>{newsPoint.content}</p>
+    </div>
+  );
+};
 
 const CandleV2Wrap = () => {
   const isMobile = getIsMobile();
@@ -87,6 +100,7 @@ const CandleV2Wrap = () => {
                         setIsLoading(false);
                       });
                   }}
+                  ToolTip={TooltipContent}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
@@ -99,7 +113,7 @@ const CandleV2Wrap = () => {
       </div>
 
       <div className="mt-4 text-sm text-gray-600">
-        <p>提示: 蓝色圆代表新闻事件，悬停在上面可查看详情。</p>
+        <p>提示: 蓝色圆代表新闻事件，可查看详情。</p>
       </div>
     </>
   );
