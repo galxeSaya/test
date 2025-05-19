@@ -81,7 +81,6 @@ const CandleV2Wrap = () => {
                   data={data}
                   newsPoints={newsPoints}
                   switchInterval={({ interval }) => {
-                    console.log("switchInterval", interval);
                     setIsLoading(true);
                     generateCandleStickData({
                       num: getRandomNum(300),

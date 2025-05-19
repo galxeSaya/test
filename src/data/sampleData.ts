@@ -39,7 +39,6 @@ const generateNewsPoints = (data: DataPoint[]): NewsPoint[] => {
     content: `这是在${data[index].x.toLocaleDateString()}发生的重要事件，该时间点的数值为${data[index].y.toFixed(2)}。`,
   }));
   
-  console.log("Generated news points:", newsPoints);
   return newsPoints;
 };
 

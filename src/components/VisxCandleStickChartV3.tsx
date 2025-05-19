@@ -659,7 +659,6 @@ export const VisxCandleStickChartV3 = ({
 
     // 如果存在新闻点，检查鼠标是否悬停在新闻点上
     if (newsPoint) {
-      console.log("newsPoint", newsPoint);
       
       const newsPointX = xScale(getDate(candlePoint)) + margin.left;
       const newsPointY = yScale(getHigh(candlePoint)) - 15 + margin.top;
