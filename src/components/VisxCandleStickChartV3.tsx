@@ -17,7 +17,7 @@ import { TooltipWithBounds, defaultStyles } from "@visx/tooltip";
 import { CandleStickPoint, CandleStickNewsPoint } from "../types/candlestickV3";
 import { Bar, Line } from "@visx/shape"; // 添加Line导入
 import PriceTip from "./PriceTipV3";
-import TopTool from "./TopToolV3";
+import TopTool, { INTERVAL_ITEM, TINTERVAL_ITEM } from "./TopToolV3";
 import clsx from "clsx";
 import { toPng } from "html-to-image";
 import dayjs from "dayjs";
@@ -237,6 +237,8 @@ export const VisxCandleStickChartV3 = ({
       .filter((_, i) => i % interval === 0)
       .map(d => getDate(d));
   }, [visibleData, innerWidth]);
+
+  const axisTickMap: Map<string, boolean> = useMemo(() => new Map(), [customTickValues]);
 
   // 查找数据点对应的新闻点
   const getNewsPointForDate = (
@@ -1109,6 +1111,17 @@ export const VisxCandleStickChartV3 = ({
     };
   }, []);
 
+  // 添加当前时间间隔状态
+  const [curInterVal, setCurInterVal] = useState<TINTERVAL_ITEM>(
+    defaultInterval || "15m"
+  );
+
+  // 处理时间间隔切换的回调
+  const handleIntervalChange = useCallback(({ interval }: { interval: TINTERVAL_ITEM }) => {
+    setCurInterVal(interval);
+    switchInterval?.({ interval });
+  }, [switchInterval]);
+
   return (
     <div ref={wrapRef} className="bg-white relative">
       <TopTool
@@ -1117,7 +1130,7 @@ export const VisxCandleStickChartV3 = ({
         toogleExpand={toogleExpand}
         handleSnapShot={handleSnapShot}
         isExpand={isExpanded}
-        switchInterval={switchInterval}
+        switchInterval={handleIntervalChange}
         defaultInterval={defaultInterval}
         intervalList={intervalList}
       />
@@ -1308,9 +1321,27 @@ export const VisxCandleStickChartV3 = ({
                 stroke="rgba(0, 0, 0, 0.1)"
                 tickStroke="rgba(0, 0, 0, 0.5)"
                 tickValues={customTickValues}
-                tickFormat={date => {
+                tickComponent={({ x, y, formattedValue }) => {
+                  const dateValue = formattedValue as string;
+                  const [datePart, timePart] = dateValue.split(" ").map(s => s.trim());
+                  return (
+                    <g transform={`translate(${x},${y})`}>
+                      <text
+                        dy="0.25em"
+                        fontSize={10}
+                        textAnchor="middle"
+                        fill="rgba(0, 0, 0, 0.6)">
+                        <tspan x="0" dy="0">{datePart}</tspan>
+                        <tspan x="0" dy="1.2em">{timePart}</tspan>
+                      </text>
+                    </g>
+                  );
+                }}
+                tickFormat={(date, idx) => {
                   const d = date as Date;
-                  return dayjs(d).format("MM/DD");
+                  const preDate = dayjs(d).format("YY/MM/DD")
+                  const afterDate = dayjs(d).format("HH:mm:ss")
+                  return `${preDate} ${afterDate}`
                 }}
               />
 
