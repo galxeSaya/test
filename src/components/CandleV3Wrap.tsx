@@ -3,45 +3,38 @@ import { ErrorBoundary } from "../App";
 import VisxCandleStickChart from "./VisxCandleStickChartV3";
 import {
   generateCandleStickData,
-  generateNewsPoints,
+  generateMarkPoints,
 } from "../data/sampleCandleDataV3";
 import { useEffect, useState } from "react";
-import { CandleStickNewsPoint, CandleStickPoint } from "../types/candlestickV3";
+import { CandleStickMarkPoint, CandleStickPoint } from "../types/candlestickV3";
 import { getIsMobile } from "../utils";
 import clsx from "clsx";
 
 // todo
-// 1. scale  工具条 -- done
 // 2. 左右边界触发数据变更
-// 3. 复现新闻弹窗不出现的问题
-// 4. 新闻弹窗 字段修改通用化表示的字段名称
-// 5. 抽离弹窗部分
 // 6. 传入不同的弹窗展示不同的数据形式
 // 7. 同时展示两种不同的弹窗内容
-// 8. 非被动事件合并处理
-// 9. 移动端弹窗信息样式处理到底部
-// 10. 移动端价格信息单独处理到顶部
 
 const defaultInterval = "15m";
 
 const getRandomNum = (max: number) => Math.ceil(Math.random() * max);
 
-const TooltipContent = (newsPoint: CandleStickNewsPoint) => {
+const TooltipContent = (markPoint: CandleStickMarkPoint) => {
   const isMobile = getIsMobile();
   return (
     <div className={clsx({
       "p-6": isMobile
     })}>
-      <strong>{newsPoint.title}</strong>
-      <p>{newsPoint.content}</p>
+      <strong>{markPoint.title}</strong>
+      <p>{markPoint.content}</p>
     </div>
   );
 };
 
-const CandleV2Wrap = () => {
+const CandleV3Wrap = () => {
   const isMobile = getIsMobile();
   const [data, setData] = useState<CandleStickPoint[]>([]);
-  const [newsPoints, setNewsPoints] = useState<CandleStickNewsPoint[]>([]);
+  const [markPoints, setMarkPoints] = useState<CandleStickMarkPoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -52,10 +45,10 @@ const CandleV2Wrap = () => {
     })
       .then(res => {
         setData(res);
-        return generateNewsPoints(res, 5);
+        return generateMarkPoints(res, 5);
       })
       .then(res => {
-        setNewsPoints(res);
+        setMarkPoints(res);
         setIsLoading(false);
       })
       .catch(error => {
@@ -79,7 +72,7 @@ const CandleV2Wrap = () => {
                   width={width}
                   height={isMobile ? 300 : 500} // 提供一个初始高度
                   data={data}
-                  newsPoints={newsPoints}
+                  markPoints={markPoints}
                   switchInterval={({ interval }) => {
                     setIsLoading(true);
                     generateCandleStickData({
@@ -88,10 +81,10 @@ const CandleV2Wrap = () => {
                     })
                       .then(res => {
                         setData(res);
-                        return generateNewsPoints(res, 5);
+                        return generateMarkPoints(res, 5);
                       })
                       .then(res => {
-                        setNewsPoints(res);
+                        setMarkPoints(res);
                         setIsLoading(false);
                       })
                       .catch(error => {
@@ -118,4 +111,4 @@ const CandleV2Wrap = () => {
   );
 };
 
-export default CandleV2Wrap;
+export default CandleV3Wrap;

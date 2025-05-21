@@ -6,7 +6,6 @@ import React, {
   useRef,
   useEffect,
   ComponentProps,
-  ReactNode,
 } from "react";
 import { scaleLinear, scaleTime } from "@visx/scale";
 import { AxisRight, AxisBottom } from "@visx/axis";
@@ -14,10 +13,10 @@ import { GridRows, GridColumns } from "@visx/grid";
 import { Group } from "@visx/group";
 import { localPoint } from "@visx/event";
 import { TooltipWithBounds, defaultStyles } from "@visx/tooltip";
-import { CandleStickPoint, CandleStickNewsPoint } from "../types/candlestickV3";
+import { CandleStickPoint, CandleStickMarkPoint } from "../types/candlestickV3";
 import { Bar, Line } from "@visx/shape"; // 添加Line导入
 import PriceTip from "./PriceTipV3";
-import TopTool, { INTERVAL_ITEM, TINTERVAL_ITEM } from "./TopToolV3";
+import TopTool, { TINTERVAL_ITEM } from "./TopToolV3";
 import clsx from "clsx";
 import { toPng } from "html-to-image";
 import dayjs from "dayjs";
@@ -50,12 +49,12 @@ interface VisxCandleStickChartProps {
   width: number;
   height: number;
   data: CandleStickPoint[];
-  newsPoints: CandleStickNewsPoint[];
+  markPoints: CandleStickMarkPoint[];
   margin?: { top: number; right: number; bottom: number; left: number };
   defaultInterval?: ComponentProps<typeof TopTool>["defaultInterval"];
   intervalList?: ComponentProps<typeof TopTool>["intervalList"];
   switchInterval?: ComponentProps<typeof TopTool>["switchInterval"];
-  ToolTip?: (newsPoint: CandleStickNewsPoint) => JSX.Element;
+  ToolTip?: (markPoint: CandleStickMarkPoint) => JSX.Element;
 }
 
 // Tooltip 样式
@@ -72,10 +71,10 @@ const tooltipStyles = {
 
 export type TTooltipData = {
   candlePoint?: CandleStickPoint;
-  newsPoint?: CandleStickNewsPoint;
+  markPoint?: CandleStickMarkPoint;
   x: number;
   y: number;
-  isHoveringNewsPoint: boolean;
+  isHoveringMarkPoint: boolean;
 };
 // 数据访问器
 const getDate = (d: CandleStickPoint) => d.date;
@@ -90,7 +89,7 @@ export const VisxCandleStickChartV3 = ({
   width,
   height,
   data,
-  newsPoints,
+  markPoints,
   margin = { top: 10, right: 60, bottom: 50, left: 10 },
   defaultInterval,
   intervalList,
@@ -156,17 +155,17 @@ export const VisxCandleStickChartV3 = ({
   }, [data, visibleRange.startIndex, visibleRange.endIndex]);
 
   // 过滤对应的新闻点
-  const visibleNewsPoints = useMemo(() => {
+  const visibleMarkPoints = useMemo(() => {
     if (!visibleData.length) return [];
 
     const startDate = visibleData[0].date;
     const endDate = visibleData[visibleData.length - 1].date;
 
-    return newsPoints.filter(newsPoint => {
-      const newsTime = newsPoint.date;
+    return markPoints.filter(markPoint => {
+      const newsTime = markPoint.date;
       return newsTime >= startDate && newsTime <= endDate;
     });
-  }, [visibleData, newsPoints]);
+  }, [visibleData, markPoints]);
 
   // 创建比例尺 - 使用visibleData而不是全部数据
   const xScale = useMemo(() => {
@@ -283,10 +282,10 @@ export const VisxCandleStickChartV3 = ({
   }, [visibleData, innerWidth, dateLeadStr, curInterVal]);
 
   // 查找数据点对应的新闻点
-  const getNewsPointForDate = (
+  const getMarkPointForDate = (
     date: number
-  ): CandleStickNewsPoint | undefined => {
-    return visibleNewsPoints.find(newsPoint => newsPoint.date === date);
+  ): CandleStickMarkPoint | undefined => {
+    return visibleMarkPoints.find(markPoint => markPoint.date === date);
   };
 
   // 添加状态跟踪鼠标位置
@@ -389,11 +388,11 @@ export const VisxCandleStickChartV3 = ({
     }
   }, [isDragging, tooltipData]);
 
-  const handleNewsPointMouseLeave = useCallback(() => {
+  const handleMarkPointMouseLeave = useCallback(() => {
     setCrosshair(null);
 
     // 不立即清除tooltipData，设置延迟
-    if (tooltipData?.isHoveringNewsPoint && tooltipData.newsPoint) {
+    if (tooltipData?.isHoveringMarkPoint && tooltipData.markPoint) {
       // 如果当前显示了新闻弹窗，设置延迟隐藏
       if (tooltipTimerRef.current) {
         window.clearTimeout(tooltipTimerRef.current);
@@ -696,25 +695,25 @@ export const VisxCandleStickChartV3 = ({
 
     const candlePoint = visibleData[index];
 
-    const newsPoint = getNewsPointForDate(candlePoint.date);
+    const markPoint = getMarkPointForDate(candlePoint.date);
 
     // 默认假设不是在新闻点上悬停
-    let isHoveringNewsPoint = false;
+    let isHoveringMarkPoint = false;
 
     // 如果存在新闻点，检查鼠标是否悬停在新闻点上
-    if (newsPoint) {
-      const newsPointX = xScale(getDate(candlePoint)) + margin.left;
-      const newsPointY = yScale(getHigh(candlePoint)) - 15 + margin.top;
+    if (markPoint) {
+      const markPointX = xScale(getDate(candlePoint)) + margin.left;
+      const markPointY = yScale(getHigh(candlePoint)) - 15 + margin.top;
 
       // 计算距离而不是使用边界盒检测 (更可靠)
       const distance = Math.sqrt(
-        Math.pow(x - newsPointX, 2) + Math.pow(y - newsPointY, 2)
+        Math.pow(x - markPointX, 2) + Math.pow(y - markPointY, 2)
       );
 
       // 如果距离在可接受范围内，认为是悬停在新闻点上
       // 使用12作为阈值，大约是新闻标记的大小加一点余量
       if (distance <= 12) {
-        isHoveringNewsPoint = true;
+        isHoveringMarkPoint = true;
         // 鼠标在新闻点上，清除任何现有的隐藏计时器
         if (tooltipTimerRef.current !== null) {
           window.clearTimeout(tooltipTimerRef.current);
@@ -724,10 +723,10 @@ export const VisxCandleStickChartV3 = ({
 
     setTooltipData({
       candlePoint,
-      newsPoint,
+      markPoint,
       x,
       y,
-      isHoveringNewsPoint,
+      isHoveringMarkPoint,
     });
   };
 
@@ -905,14 +904,14 @@ export const VisxCandleStickChartV3 = ({
         }, 0);
 
         const candlePoint = visibleData[index];
-        const newsPoint = getNewsPointForDate(candlePoint.date);
+        const markPoint = getMarkPointForDate(candlePoint.date);
 
         setTooltipData({
           candlePoint,
-          newsPoint,
+          markPoint,
           x,
           y,
-          isHoveringNewsPoint: false,
+          isHoveringMarkPoint: false,
         });
       }
       // 双指操作 - 用于缩放
@@ -922,7 +921,7 @@ export const VisxCandleStickChartV3 = ({
         setPrevTouchDistance(distance);
       }
     },
-    [visibleRange, xScale, visibleData, margin.left, getNewsPointForDate]
+    [visibleRange, xScale, visibleData, margin.left, getMarkPointForDate]
   );
 
   // 处理触摸移动事件
@@ -978,14 +977,14 @@ export const VisxCandleStickChartV3 = ({
         }, 0);
 
         const candlePoint = visibleData[index];
-        const newsPoint = getNewsPointForDate(candlePoint.date);
+        const markPoint = getMarkPointForDate(candlePoint.date);
 
         setTooltipData({
           candlePoint,
-          newsPoint,
+          markPoint,
           x,
           y,
-          isHoveringNewsPoint: false,
+          isHoveringMarkPoint: false,
         });
       }
       // 双指缩放
@@ -1046,7 +1045,7 @@ export const VisxCandleStickChartV3 = ({
       xScale,
       margin.left,
       visibleData,
-      getNewsPointForDate,
+      getMarkPointForDate,
       prevTouchDistance,
       visibleRange,
     ]
@@ -1058,25 +1057,25 @@ export const VisxCandleStickChartV3 = ({
       // 检测是否为短促的点击（检测新闻点）
       const isTap = Date.now() - touchStartTime < 300;
 
-      if (isTap && touchStartPos && tooltipData?.newsPoint) {
+      if (isTap && touchStartPos && tooltipData?.markPoint) {
         // 计算触摸点是否靠近新闻点
-        const newsPointDate = tooltipData.newsPoint.date;
-        const pointIndex = visibleData.findIndex(d => d.date === newsPointDate);
+        const markPointDate = tooltipData.markPoint.date;
+        const pointIndex = visibleData.findIndex(d => d.date === markPointDate);
 
         if (pointIndex !== -1) {
-          const newsPoint = visibleData[pointIndex];
-          const newsPointX = xScale(getDate(newsPoint)) + margin.left;
-          const newsPointY = yScale(getHigh(newsPoint)) - 15 + margin.top;
+          const markPoint = visibleData[pointIndex];
+          const markPointX = xScale(getDate(markPoint)) + margin.left;
+          const markPointY = yScale(getHigh(markPoint)) - 15 + margin.top;
 
-          const dx = touchStartPos.x - newsPointX;
-          const dy = touchStartPos.y - newsPointY;
+          const dx = touchStartPos.x - markPointX;
+          const dy = touchStartPos.y - markPointY;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
           // 如果点击位置够近，显示新闻详情
           if (distance <= 20) {
             setTooltipData({
               ...tooltipData,
-              isHoveringNewsPoint: true,
+              isHoveringMarkPoint: true,
             });
 
             // 在一段时间后自动隐藏
@@ -1266,7 +1265,7 @@ export const VisxCandleStickChartV3 = ({
                   : DECREASE_COLOR;
 
                 // 确定是否有关联的新闻点
-                const hasNewsPoint = newsPoints.some(np => np.date === d.date);
+                const hasMarkPoint = markPoints.some(np => np.date === d.date);
 
                 return (
                   <Group key={`candle-${i}`}>
@@ -1292,8 +1291,8 @@ export const VisxCandleStickChartV3 = ({
                     />
 
                     {/* 新闻点标记 */}
-                    {hasNewsPoint && (
-                      <g onMouseLeave={handleNewsPointMouseLeave}>
+                    {hasMarkPoint && (
+                      <g onMouseLeave={handleMarkPointMouseLeave}>
                         {/* 添加圆形的透明点击区域 (更适合距离检测) */}
                         {/* <circle
                           cx={x}
@@ -1498,8 +1497,8 @@ export const VisxCandleStickChartV3 = ({
 
           {/* 工具提示 */}
           {tooltipData &&
-            tooltipData.newsPoint &&
-            tooltipData.isHoveringNewsPoint &&
+            tooltipData.markPoint &&
+            tooltipData.isHoveringMarkPoint &&
             !isMobile && (
               // @ts-ignore
               <TooltipWithBounds
@@ -1512,7 +1511,7 @@ export const VisxCandleStickChartV3 = ({
                 left={tooltipData.x - 5}
                 onMouseEnter={handleTooltipMouseEnter}
                 onMouseLeave={handleTooltipMouseLeave}>
-                {ToolTip && <ToolTip {...tooltipData.newsPoint} />}
+                {ToolTip && <ToolTip {...tooltipData.markPoint} />}
               </TooltipWithBounds>
             )}
         </div>
@@ -1525,10 +1524,10 @@ export const VisxCandleStickChartV3 = ({
         />
       </div>
       {tooltipData &&
-        tooltipData.newsPoint &&
-        tooltipData.isHoveringNewsPoint &&
+        tooltipData.markPoint &&
+        tooltipData.isHoveringMarkPoint &&
         isMobile && (
-          <div>{ToolTip && <ToolTip {...tooltipData.newsPoint} />}</div>
+          <div>{ToolTip && <ToolTip {...tooltipData.markPoint} />}</div>
         )}
       {isLoading && (
         <div className="absolute top-0 right-0 bottom-0 left-0 flex items-center justify-center z-10 bg-slate-500 bg-opacity-50">

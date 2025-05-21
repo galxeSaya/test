@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { CandleStickPoint, CandleStickNewsPoint } from '../types/candlestickV3';
+import { CandleStickPoint, CandleStickMarkPoint } from '../types/candlestickV3';
 import { TINTERVAL_ITEM } from '../components/TopToolV3';
 
 
@@ -100,8 +100,8 @@ export const  generateCandleStickData = ({
 }
 
 // 生成随机的新闻点
-export function generateNewsPoints(data: CandleStickPoint[], count: number): Promise<CandleStickNewsPoint[]> {
-  const newsPoints: CandleStickNewsPoint[] = [];
+export function generateMarkPoints(data: CandleStickPoint[], count: number): Promise<CandleStickMarkPoint[]> {
+  const newsPoints: CandleStickMarkPoint[] = [];
   const usedIndices = new Set<number>();
   
   // 确保我们不会尝试生成超过数据点数量的新闻点
@@ -113,7 +113,7 @@ export function generateNewsPoints(data: CandleStickPoint[], count: number): Pro
       usedIndices.add(index);
       
       const dataPoint = data[index];
-      const newsPoint: CandleStickNewsPoint = {
+      const newsPoint: CandleStickMarkPoint = {
         date: dataPoint.date,
         title: `市场新闻 #${index + 1}`,
         content: `这是关于 ${dayjs(dataPoint.date).format('YYYY-MM-DD HH:mm:ss')} 的重要市场动态。当日价格从 ${dataPoint.open.toFixed(2)} 变化到 ${dataPoint.close.toFixed(2)}.`,
@@ -135,7 +135,7 @@ export function generateNewsPoints(data: CandleStickPoint[], count: number): Pro
   num: 200,
   interval: '1d',
 });
-export const sampleCandleNewsPoints = generateNewsPoints(sampleCandleData, 5); */
+export const sampleCandleNewsPoints = generateMarkPoints(sampleCandleData, 5); */
 
 
 

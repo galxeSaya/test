@@ -9,7 +9,7 @@ export interface CandleStickPoint {
 }
 
 // 新闻点类型
-export interface CandleStickNewsPoint {
+export interface CandleStickMarkPoint {
   date: number;
   title: string;
   content: string;
