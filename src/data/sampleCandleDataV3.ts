@@ -58,6 +58,7 @@ export const  generateCandleStickData = ({
   const data: CandleStickPoint[] = [];
   let price = 100; // 起始价格
   const intervalInSeconds = getSeconds(interval);
+  console.log('intervalInSeconds', interval, intervalInSeconds);
   for (let i = 0; i < num; i++) {
     let date = startStamp;
     if (type === 'backward') {
@@ -66,6 +67,8 @@ export const  generateCandleStickData = ({
       date = date + (i * intervalInSeconds * 1000);
     }
 
+    // console.log('date', dayjs(date).format('YYYY-MM-DD HH:mm:ss'));
+    
     // 随机波动
     const change = (Math.random() - 0.5) * 10;
     const open = price;

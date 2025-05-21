@@ -55,7 +55,7 @@ interface VisxCandleStickChartProps {
   defaultInterval?: ComponentProps<typeof TopTool>["defaultInterval"];
   intervalList?: ComponentProps<typeof TopTool>["intervalList"];
   switchInterval?: ComponentProps<typeof TopTool>["switchInterval"];
-  ToolTip?: (newsPoint: CandleStickNewsPoint) => JSX.Element
+  ToolTip?: (newsPoint: CandleStickNewsPoint) => JSX.Element;
 }
 
 // Tooltip 样式
@@ -109,6 +109,10 @@ export const VisxCandleStickChartV3 = ({
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const chartWrapRef = useRef<HTMLDivElement | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  // 添加当前时间间隔状态
+  const [curInterVal, setCurInterVal] = useState<TINTERVAL_ITEM>(
+    defaultInterval || "15m"
+  );
 
   // 添加拖动相关状态
   const [isDragging, setIsDragging] = useState(false);
@@ -219,9 +223,21 @@ export const VisxCandleStickChartV3 = ({
   const xBandwidth = innerWidth / (visibleData.length || 1);
   const candleWidth = Math.max(xBandwidth * 0.6, 1);
 
-  // 根据图表宽度自适应计算X轴时间标签
+  const dateLeadStr = useMemo(() => {
+    const intervaltype = curInterVal.match(/^(\d+)([a-zA-Z]+)$/)?.[2] || "";
+    console.log("intervaltype", intervaltype);
+    return ["d", "w"].includes(intervaltype) ? "YY/MM" : "YY/MM/DD";
+  }, [curInterVal]);
+
+  /**
+   * 根据图表宽度自适应计算X轴时间标签
+   * 当前interval 设置对应的时间区间判断条件A
+   * 当前区间内 第一个点取出，剩下的其他点按照间隔取出，往前如果小于间隔则前一个不取，往后一个如果小于间隔也不取
+   */
   const customTickValues = useMemo(() => {
     if (!visibleData.length) return [];
+    const axisTickMap: Map<string, number> = new Map();
+    const showItemArr: { idx: number; isLead?: boolean }[] = [];
 
     // 估计每个标签需要的最小宽度（像素）
     const minWidthPerLabel = 80;
@@ -230,15 +246,41 @@ export const VisxCandleStickChartV3 = ({
     const maxLabels = Math.floor(innerWidth / minWidthPerLabel);
 
     // 计算每隔多少个点显示一个标签
-    const interval = Math.max(1, Math.ceil(visibleData.length / maxLabels));
+    const distance = Math.max(1, Math.ceil(visibleData.length / maxLabels));
+    if (curInterVal.includes("mo"))
+      return visibleData
+        .filter((_, i) => i % distance === 0)
+        .map(d => getDate(d));
 
     // 生成标签值数组
-    return visibleData
-      .filter((_, i) => i % interval === 0)
-      .map(d => getDate(d));
-  }, [visibleData, innerWidth]);
+    visibleData.forEach((_, i) => {
+      const dateStr = dayjs(getDate(_)).format(dateLeadStr);
+      const before = showItemArr[showItemArr.length - 1]?.idx;
+      if (!axisTickMap.has(dateStr)) {
+        if (before !== undefined) {
+          if (i - before >= distance) {
+            showItemArr.push({
+              idx: i,
+            })
+            axisTickMap.set(dateStr, i)
+          }
+        } else {
+          showItemArr.push({
+            idx: i,
+          });
+          axisTickMap.set(dateStr, i)
+        }
+      } else if (i - (showItemArr[showItemArr.length - 1]?.idx || 0) >= distance) {
+        showItemArr.push({
+          idx: i,
+        });
+      }
+    });
 
-  const axisTickMap: Map<string, boolean> = useMemo(() => new Map(), [customTickValues]);
+    return visibleData
+      .filter((_, i) => showItemArr.map(_ => _.idx).includes(i))
+      .map(d => getDate(d));
+  }, [visibleData, innerWidth, dateLeadStr, curInterVal]);
 
   // 查找数据点对应的新闻点
   const getNewsPointForDate = (
@@ -661,7 +703,6 @@ export const VisxCandleStickChartV3 = ({
 
     // 如果存在新闻点，检查鼠标是否悬停在新闻点上
     if (newsPoint) {
-      
       const newsPointX = xScale(getDate(candlePoint)) + margin.left;
       const newsPointY = yScale(getHigh(candlePoint)) - 15 + margin.top;
 
@@ -1030,7 +1071,7 @@ export const VisxCandleStickChartV3 = ({
           const dx = touchStartPos.x - newsPointX;
           const dy = touchStartPos.y - newsPointY;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          
+
           // 如果点击位置够近，显示新闻详情
           if (distance <= 20) {
             setTooltipData({
@@ -1111,16 +1152,14 @@ export const VisxCandleStickChartV3 = ({
     };
   }, []);
 
-  // 添加当前时间间隔状态
-  const [curInterVal, setCurInterVal] = useState<TINTERVAL_ITEM>(
-    defaultInterval || "15m"
-  );
-
   // 处理时间间隔切换的回调
-  const handleIntervalChange = useCallback(({ interval }: { interval: TINTERVAL_ITEM }) => {
-    setCurInterVal(interval);
-    switchInterval?.({ interval });
-  }, [switchInterval]);
+  const handleIntervalChange = useCallback(
+    ({ interval }: { interval: TINTERVAL_ITEM }) => {
+      setCurInterVal(interval);
+      switchInterval?.({ interval });
+    },
+    [switchInterval]
+  );
 
   return (
     <div ref={wrapRef} className="bg-white relative">
@@ -1314,36 +1353,61 @@ export const VisxCandleStickChartV3 = ({
               */}
 
               {/* X轴 - 使用自适应计算的标签 */}
-              <AxisBottom
-                hideTicks
-                scale={xScale}
-                top={innerHeight}
-                stroke="rgba(0, 0, 0, 0.1)"
-                tickStroke="rgba(0, 0, 0, 0.5)"
-                tickValues={customTickValues}
-                tickComponent={({ x, y, formattedValue }) => {
-                  const dateValue = formattedValue as string;
-                  const [datePart, timePart] = dateValue.split(" ").map(s => s.trim());
-                  return (
-                    <g transform={`translate(${x},${y})`}>
-                      <text
-                        dy="0.25em"
-                        fontSize={10}
-                        textAnchor="middle"
-                        fill="rgba(0, 0, 0, 0.6)">
-                        <tspan x="0" dy="0">{datePart}</tspan>
-                        <tspan x="0" dy="1.2em">{timePart}</tspan>
-                      </text>
-                    </g>
-                  );
-                }}
-                tickFormat={(date, idx) => {
-                  const d = date as Date;
-                  const preDate = dayjs(d).format("YY/MM/DD")
-                  const afterDate = dayjs(d).format("HH:mm:ss")
-                  return `${preDate} ${afterDate}`
-                }}
-              />
+              {(() => {
+                const dateMap = new Map<string, number>();
+                const isDw =
+                  curInterVal.includes("d") || curInterVal.includes("w");
+                return (
+                  <AxisBottom
+                    hideTicks
+                    scale={xScale}
+                    top={innerHeight}
+                    stroke="rgba(0, 0, 0, 0.1)"
+                    tickStroke="rgba(0, 0, 0, 0.5)"
+                    tickValues={customTickValues}
+                    tickComponent={({ x, y, formattedValue }) => {
+                      const dateValue = formattedValue as string;
+                      const [datePart, timePart] = dateValue
+                        .split(" ")
+                        .map(s => s.trim());
+                      return (
+                        <g transform={`translate(${x},${y})`}>
+                          <text
+                            dy="0.25em"
+                            fontSize={10}
+                            textAnchor="middle"
+                            fill="rgba(0, 0, 0, 0.6)">
+                            <tspan x="0" dy="0">
+                              {datePart}
+                            </tspan>
+                            <tspan x="0" dy="1.2em">
+                              {timePart}
+                            </tspan>
+                          </text>
+                        </g>
+                      );
+                    }}
+                    tickFormat={(date, i) => {
+                      if (i === 0) dateMap.clear();
+                      const d = date as Date;
+                      /* console.log('---', {
+                    isDw, idMo: curInterVal.includes('mo')
+                  }); */
+
+                      if (curInterVal.includes("mo"))
+                        return dayjs(d).format("YY/MM");
+                      const preDate = dayjs(d).format(dateLeadStr);
+                      const afterDate = dayjs(d).format("HH:mm:ss");
+                      if (dateMap.has(preDate))
+                        return isDw ? dayjs(d).format("MM/DD") : afterDate;
+                      dateMap.set(preDate, i);
+                      return isDw
+                        ? dayjs(d).format("YY/MM")
+                        : `${preDate} ${afterDate}`;
+                    }}
+                  />
+                );
+              })()}
 
               {/* 渲染十字线 */}
               {crosshair && (
@@ -1435,7 +1499,8 @@ export const VisxCandleStickChartV3 = ({
           {/* 工具提示 */}
           {tooltipData &&
             tooltipData.newsPoint &&
-            tooltipData.isHoveringNewsPoint && !isMobile && (
+            tooltipData.isHoveringNewsPoint &&
+            !isMobile && (
               // @ts-ignore
               <TooltipWithBounds
                 key={Math.random()} // 确保更新位置
@@ -1461,10 +1526,9 @@ export const VisxCandleStickChartV3 = ({
       </div>
       {tooltipData &&
         tooltipData.newsPoint &&
-        tooltipData.isHoveringNewsPoint && isMobile && (
-          <div>
-            {ToolTip && <ToolTip {...tooltipData.newsPoint} />}
-          </div>
+        tooltipData.isHoveringNewsPoint &&
+        isMobile && (
+          <div>{ToolTip && <ToolTip {...tooltipData.newsPoint} />}</div>
         )}
       {isLoading && (
         <div className="absolute top-0 right-0 bottom-0 left-0 flex items-center justify-center z-10 bg-slate-500 bg-opacity-50">

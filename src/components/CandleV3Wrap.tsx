@@ -47,7 +47,7 @@ const CandleV2Wrap = () => {
   useEffect(() => {
     setIsLoading(true);
     generateCandleStickData({
-      num: getRandomNum(300),
+      num: getRandomNum(300) + 200,
       interval: defaultInterval,
     })
       .then(res => {
@@ -75,7 +75,7 @@ const CandleV2Wrap = () => {
                 <VisxCandleStickChart
                   isLoading={isLoading}
                   defaultInterval={defaultInterval}
-                  intervalList={["1m", "5m", "15m", "30m", "1h", "4h", "1d"]}
+                  intervalList={["1m", "5m", "15m", "30m", "1h", "4h", "1d", '3d', '1w', '1mo']}
                   width={width}
                   height={isMobile ? 300 : 500} // 提供一个初始高度
                   data={data}
