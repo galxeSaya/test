@@ -127,6 +127,12 @@ export function generateMarkPoints(data: CandleStickPoint[], count: number): Pro
         title: `市场新闻 #${index + 1}-2`,
         content: `这是关于 ${dayjs(dataPoint.date).format('YYYY-MM-DD HH:mm:ss')} 的重要市场动态。当日价格从 ${dataPoint.open.toFixed(2)} 变化到 ${dataPoint.close.toFixed(2)}.`,
       });
+      newsPoints.push({
+        date: dataPoint.date,
+        type: Math.random() > 0.5 ? 'B' : 'S', // 随机选择买入或卖出
+        title: `市场新闻 #${index + 1}-3`,
+        content: `这是关于 ${dayjs(dataPoint.date).format('YYYY-MM-DD HH:mm:ss')} 的重要市场动态。当日价格从 ${dataPoint.open.toFixed(2)} 变化到 ${dataPoint.close.toFixed(2)}.`,
+      });
     }
   }
   

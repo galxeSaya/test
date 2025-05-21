@@ -1292,11 +1292,15 @@ export const VisxCandleStickChartV3 = ({
 
                     {/* 新闻点标记 */}
                     {points.map((point, idx) => {
-                      const r = Math.min(Math.max(candleWidth / 2, 3), 10)
+                      const r = Math.min(Math.max(candleWidth / 2, 3), 10);
+                      // 固定点与蜡烛上延线顶点的距离为10
+                      const pointOffset = 10; // 点与蜡烛上延线顶点的固定距离
+                      const pointSpacing = r * 2 + 2; // 点之间的间距
+                      
                       return (<g onMouseLeave={handleMarkPointMouseLeave} key={idx}>
                         <circle
                           cx={x}
-                          cy={highY - 20 + 2 * r * idx}
+                          cy={highY - pointOffset - r - pointSpacing * idx}
                           r={r}
                           fill="blue"
                           stroke="#fff"
@@ -1305,7 +1309,7 @@ export const VisxCandleStickChartV3 = ({
                         />
                         <text
                           x={x}
-                          y={highY - 20 + 2 * r * idx}
+                          y={highY - pointOffset - r - pointSpacing * idx}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="#fff"
