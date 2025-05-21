@@ -11,6 +11,7 @@ export interface CandleStickPoint {
 // 新闻点类型
 export interface CandleStickMarkPoint {
   date: number;
+  type: 'B' | 'S';
   title: string;
   content: string;
   price?: number; // 可选，可以是与新闻相关的价格点

@@ -1264,8 +1264,8 @@ export const VisxCandleStickChartV3 = ({
                   ? INCREASE_COLOR
                   : DECREASE_COLOR;
 
-                // 确定是否有关联的新闻点
-                const hasMarkPoint = markPoints.some(np => np.date === d.date);
+                // 获取关联的点
+                const points = markPoints.filter(np => np.date === d.date);
 
                 return (
                   <Group key={`candle-${i}`}>
@@ -1291,21 +1291,13 @@ export const VisxCandleStickChartV3 = ({
                     />
 
                     {/* 新闻点标记 */}
-                    {hasMarkPoint && (
-                      <g onMouseLeave={handleMarkPointMouseLeave}>
-                        {/* 添加圆形的透明点击区域 (更适合距离检测) */}
-                        {/* <circle
-                          cx={x}
-                          cy={highY - 10}
-                          r={12}
-                          fill="transparent"
-                          style={{ cursor: "pointer" }}
-                        /> */}
-                        {/* 将可见的新闻标记从方形改为圆形 */}
+                    {points.map((point, idx) => {
+                      const r = Math.min(Math.max(candleWidth / 2, 3), 10)
+                      return (<g onMouseLeave={handleMarkPointMouseLeave} key={idx}>
                         <circle
                           cx={x}
-                          cy={highY - 15}
-                          r={Math.min(Math.max(candleWidth / 2, 3), 10)}
+                          cy={highY - 20 + 2 * r * idx}
+                          r={r}
                           fill="blue"
                           stroke="#fff"
                           strokeWidth={1}
@@ -1313,17 +1305,17 @@ export const VisxCandleStickChartV3 = ({
                         />
                         <text
                           x={x}
-                          y={highY - 15}
+                          y={highY - 20 + 2 * r * idx}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fill="#fff"
                           fontSize={7}
                           fontWeight="bold"
                           pointerEvents="none">
-                          N
+                          {point.type}
                         </text>
-                      </g>
-                    )}
+                      </g>)
+                    })}
                   </Group>
                 );
               })}
