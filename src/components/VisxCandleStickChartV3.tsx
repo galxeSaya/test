@@ -89,7 +89,7 @@ export const VisxCandleStickChartV3 = ({
   height,
   data,
   markPoints,
-  margin = { top: 10, right: 60, bottom: 50, left: 10 },
+  margin = { top: 10, right: 60, bottom: 50, left: 20 },
   defaultInterval,
   intervalList,
   ToolTip,
