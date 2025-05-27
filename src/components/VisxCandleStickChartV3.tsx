@@ -827,6 +827,9 @@ export const VisxCandleStickChartV3 = ({
 
       // 检测双击 (300ms内的两次点击)
       if (currentTime - lastTapTime < 300 && event.touches.length === 1) {
+        setTooltipData(undefined);
+        setMarkPointData(undefined);
+        setCrosshair(null);
         // 双击执行重置视图
         updateRangeFn("refresh");
         setLastTapTime(0); // 重置记录，避免连续触发
@@ -874,7 +877,7 @@ export const VisxCandleStickChartV3 = ({
         setPrevTouchDistance(distance);
       }
     },
-    [visibleRange, xScale, visibleData, margin.left]
+    [visibleRange, xScale, visibleData, margin.left, lastTapTime]
   );
 
   // 处理触摸移动事件
