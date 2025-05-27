@@ -36,14 +36,6 @@ export const INCREASE_COLOR = "#4caf50"; // 绿色
 export const DECREASE_COLOR = "#ff5722"; // 红色
 export const DEFAULT_COLOR = "#383838"; // 灰色
 
-// 添加一个禁用文本选择的CSS类样式
-const noSelectStyle = {
-  userSelect: "none",
-  WebkitUserSelect: "none",
-  MozUserSelect: "none",
-  msUserSelect: "none",
-};
-
 interface VisxCandleStickChartProps {
   isLoading?: boolean;
   width: number;
@@ -74,8 +66,15 @@ export type TTooltipData = {
   markPoint?: CandleStickMarkPoint;
   x: number;
   y: number;
-  isHoveringMarkPoint: boolean;
+  isHoveringMarkPoint?: boolean;
 };
+
+export type TMarkPointData = {
+  point?: CandleStickMarkPoint;
+  x: number;
+  y: number;
+};
+
 // 数据访问器
 const getDate = (d: CandleStickPoint) => d.date;
 const getOpen = (d: CandleStickPoint) => d.open;
@@ -98,13 +97,13 @@ export const VisxCandleStickChartV3 = ({
 }: VisxCandleStickChartProps) => {
   const isMobile = getIsMobile();
   const [tooltipData, setTooltipData] = useState<TTooltipData>();
+  const [markPointData, setMarkPointData] = useState<TMarkPointData>();
   const [chartHeight, setChartHeight] = useState(height);
   const [chartWidth, setChartWidth] = useState(width);
   const [isMini, setIsMini] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
   // 添加tooltip定时器引用
   const tooltipTimerRef = useRef<number | null>(null);
-  const isInNewsTip = useRef<boolean | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const chartWrapRef = useRef<HTMLDivElement | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -153,19 +152,6 @@ export const VisxCandleStickChartV3 = ({
   const visibleData = useMemo(() => {
     return data.slice(visibleRange.startIndex, visibleRange.endIndex + 1);
   }, [data, visibleRange.startIndex, visibleRange.endIndex]);
-
-  // 过滤对应的新闻点
-  const visibleMarkPoints = useMemo(() => {
-    if (!visibleData.length) return [];
-
-    const startDate = visibleData[0].date;
-    const endDate = visibleData[visibleData.length - 1].date;
-
-    return markPoints.filter(markPoint => {
-      const newsTime = markPoint.date;
-      return newsTime >= startDate && newsTime <= endDate;
-    });
-  }, [visibleData, markPoints]);
 
   // 创建比例尺 - 使用visibleData而不是全部数据
   const xScale = useMemo(() => {
@@ -260,16 +246,19 @@ export const VisxCandleStickChartV3 = ({
           if (i - before >= distance) {
             showItemArr.push({
               idx: i,
-            })
-            axisTickMap.set(dateStr, i)
+            });
+            axisTickMap.set(dateStr, i);
           }
         } else {
           showItemArr.push({
             idx: i,
           });
-          axisTickMap.set(dateStr, i)
+          axisTickMap.set(dateStr, i);
         }
-      } else if (i - (showItemArr[showItemArr.length - 1]?.idx || 0) >= distance) {
+      } else if (
+        i - (showItemArr[showItemArr.length - 1]?.idx || 0) >=
+        distance
+      ) {
         showItemArr.push({
           idx: i,
         });
@@ -280,13 +269,6 @@ export const VisxCandleStickChartV3 = ({
       .filter((_, i) => showItemArr.map(_ => _.idx).includes(i))
       .map(d => getDate(d));
   }, [visibleData, innerWidth, dateLeadStr, curInterVal]);
-
-  // 查找数据点对应的新闻点
-  const getMarkPointForDate = (
-    date: number
-  ): CandleStickMarkPoint | undefined => {
-    return visibleMarkPoints.find(markPoint => markPoint.date === date);
-  };
 
   // 添加状态跟踪鼠标位置
   const [crosshair, setCrosshair] = useState<{ x: number; y: number } | null>(
@@ -373,9 +355,7 @@ export const VisxCandleStickChartV3 = ({
   // 鼠标离开SVG时的处理
   const handleMouseLeave = useCallback(() => {
     setCrosshair(null);
-    if (!tooltipTimerRef.current && !isInNewsTip.current) {
-      setTooltipData(undefined);
-    }
+    setTooltipData(undefined);
 
     if (isDragging) {
       setIsDragging(false);
@@ -388,22 +368,21 @@ export const VisxCandleStickChartV3 = ({
     }
   }, [isDragging, tooltipData]);
 
+  // 鼠标离开新闻点处理函数
   const handleMarkPointMouseLeave = useCallback(() => {
-    setCrosshair(null);
-
     // 不立即清除tooltipData，设置延迟
-    if (tooltipData?.isHoveringMarkPoint && tooltipData.markPoint) {
+    if (markPointData) {
       // 如果当前显示了新闻弹窗，设置延迟隐藏
       if (tooltipTimerRef.current) {
         window.clearTimeout(tooltipTimerRef.current);
       }
 
       tooltipTimerRef.current = window.setTimeout(() => {
-        setTooltipData(undefined);
+        setMarkPointData(undefined);
         tooltipTimerRef.current = null;
       }, 300); // 300ms的延迟，可以根据需要调整
     } else {
-      setTooltipData(undefined);
+      setMarkPointData(undefined);
     }
 
     if (isDragging) {
@@ -415,7 +394,35 @@ export const VisxCandleStickChartV3 = ({
         document.body.style.userSelect = "";
       }
     }
-  }, [isDragging, tooltipData]);
+  }, [isDragging, markPointData]);
+
+  // 鼠标移入新闻点处理函数
+  const handleMarkPointMouseEnter = useCallback(
+    ({
+      e,
+      point,
+    }: {
+      e: React.MouseEvent<SVGGElement, MouseEvent> | React.TouchEvent<SVGGElement>;
+      point: CandleStickMarkPoint;
+    }) => {
+      // 如果正在拖动，则调用拖动处理函数
+      if (isDragging) return;
+      const { x, y } = localPoint(e) || { x: 0, y: 0 };
+
+      // 鼠标移入新闻点，清除隐藏计时器
+      if (tooltipTimerRef.current) {
+        window.clearTimeout(tooltipTimerRef.current);
+        tooltipTimerRef.current = null;
+      }
+
+      setMarkPointData({
+        point,
+        x,
+        y,
+      });
+    },
+    [isDragging]
+  );
 
   // 添加手势状态跟踪
   const [gestureType, setGestureType] = useState<"none" | "pan" | "zoom">(
@@ -547,25 +554,6 @@ export const VisxCandleStickChartV3 = ({
     ]
   );
 
-  // 使用非被动事件监听器来阻止默认行为
-  useEffect(() => {
-    const svgElement = svgRef.current;
-    if (!svgElement) return;
-
-    // 简化的阻止默认行为函数
-    const preventDefault = (e: Event) => {
-      e.preventDefault();
-    };
-
-    // 添加非被动事件监听器
-    svgElement.addEventListener("wheel", preventDefault, { passive: false });
-
-    // 清理函数
-    return () => {
-      svgElement.removeEventListener("wheel", preventDefault);
-    };
-  }, []);
-
   // 添加窗口大小变化监听
   useEffect(() => {
     // 立即更新当前尺寸
@@ -641,7 +629,6 @@ export const VisxCandleStickChartV3 = ({
 
   // 处理鼠标移入弹窗
   const handleTooltipMouseEnter = () => {
-    isInNewsTip.current = true;
     // 鼠标移入弹窗，清除隐藏计时器
     if (tooltipTimerRef.current !== null) {
       window.clearTimeout(tooltipTimerRef.current);
@@ -652,8 +639,7 @@ export const VisxCandleStickChartV3 = ({
   // 处理鼠标移出弹窗
   const handleTooltipMouseLeave = () => {
     // 鼠标移出弹窗，立即隐藏
-    setTooltipData(undefined);
-    isInNewsTip.current = false;
+    setMarkPointData(undefined);
   };
 
   // 处理鼠标移动事件
@@ -664,7 +650,7 @@ export const VisxCandleStickChartV3 = ({
       return;
     }
 
-    if (tooltipTimerRef.current || isInNewsTip.current) return;
+    if (tooltipTimerRef.current) return;
 
     const { x, y } = localPoint(event) || { x: 0, y: 0 };
 
@@ -695,38 +681,10 @@ export const VisxCandleStickChartV3 = ({
 
     const candlePoint = visibleData[index];
 
-    const markPoint = getMarkPointForDate(candlePoint.date);
-
-    // 默认假设不是在新闻点上悬停
-    let isHoveringMarkPoint = false;
-
-    // 如果存在新闻点，检查鼠标是否悬停在新闻点上
-    if (markPoint) {
-      const markPointX = xScale(getDate(candlePoint)) + margin.left;
-      const markPointY = yScale(getHigh(candlePoint)) - 15 + margin.top;
-
-      // 计算距离而不是使用边界盒检测 (更可靠)
-      const distance = Math.sqrt(
-        Math.pow(x - markPointX, 2) + Math.pow(y - markPointY, 2)
-      );
-
-      // 如果距离在可接受范围内，认为是悬停在新闻点上
-      // 使用12作为阈值，大约是新闻标记的大小加一点余量
-      if (distance <= 12) {
-        isHoveringMarkPoint = true;
-        // 鼠标在新闻点上，清除任何现有的隐藏计时器
-        if (tooltipTimerRef.current !== null) {
-          window.clearTimeout(tooltipTimerRef.current);
-        }
-      }
-    }
-
     setTooltipData({
       candlePoint,
-      markPoint,
       x,
       y,
-      isHoveringMarkPoint,
     });
   };
 
@@ -852,7 +810,6 @@ export const VisxCandleStickChartV3 = ({
   const [prevTouchDistance, setPrevTouchDistance] = useState<number | null>(
     null
   );
-  const [touchStartTime, setTouchStartTime] = useState<number>(0);
   const [lastTapTime, setLastTapTime] = useState<number>(0);
 
   // 计算两个触摸点之间的距离
@@ -867,7 +824,6 @@ export const VisxCandleStickChartV3 = ({
   const handleTouchStart = useCallback(
     (event: React.TouchEvent<SVGSVGElement>) => {
       const currentTime = Date.now();
-      setTouchStartTime(currentTime);
 
       // 检测双击 (300ms内的两次点击)
       if (currentTime - lastTapTime < 300 && event.touches.length === 1) {
@@ -904,14 +860,11 @@ export const VisxCandleStickChartV3 = ({
         }, 0);
 
         const candlePoint = visibleData[index];
-        const markPoint = getMarkPointForDate(candlePoint.date);
 
         setTooltipData({
           candlePoint,
-          markPoint,
           x,
           y,
-          isHoveringMarkPoint: false,
         });
       }
       // 双指操作 - 用于缩放
@@ -921,7 +874,7 @@ export const VisxCandleStickChartV3 = ({
         setPrevTouchDistance(distance);
       }
     },
-    [visibleRange, xScale, visibleData, margin.left, getMarkPointForDate]
+    [visibleRange, xScale, visibleData, margin.left]
   );
 
   // 处理触摸移动事件
@@ -977,14 +930,11 @@ export const VisxCandleStickChartV3 = ({
         }, 0);
 
         const candlePoint = visibleData[index];
-        const markPoint = getMarkPointForDate(candlePoint.date);
 
         setTooltipData({
           candlePoint,
-          markPoint,
           x,
           y,
-          isHoveringMarkPoint: false,
         });
       }
       // 双指缩放
@@ -1045,109 +995,56 @@ export const VisxCandleStickChartV3 = ({
       xScale,
       margin.left,
       visibleData,
-      getMarkPointForDate,
       prevTouchDistance,
       visibleRange,
     ]
   );
 
   // 处理触摸结束事件
-  const handleTouchEnd = useCallback(
-    (event: React.TouchEvent<SVGSVGElement>) => {
-      // 检测是否为短促的点击（检测新闻点）
-      const isTap = Date.now() - touchStartTime < 300;
+  const handleTouchEnd = useCallback(() => {
+    // 重置触摸状态
+    setTouchStartPos(null);
+    setPrevTouchDistance(null);
+    setIsDragging(false);
 
-      if (isTap && touchStartPos && tooltipData?.markPoint) {
-        // 计算触摸点是否靠近新闻点
-        const markPointDate = tooltipData.markPoint.date;
-        const pointIndex = visibleData.findIndex(d => d.date === markPointDate);
-
-        if (pointIndex !== -1) {
-          const markPoint = visibleData[pointIndex];
-          const markPointX = xScale(getDate(markPoint)) + margin.left;
-          const markPointY = yScale(getHigh(markPoint)) - 15 + margin.top;
-
-          const dx = touchStartPos.x - markPointX;
-          const dy = touchStartPos.y - markPointY;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          // 如果点击位置够近，显示新闻详情
-          if (distance <= 20) {
-            setTooltipData({
-              ...tooltipData,
-              isHoveringMarkPoint: true,
-            });
-
-            // 在一段时间后自动隐藏
-            /* if (tooltipTimerRef.current !== null) {
-              window.clearTimeout(tooltipTimerRef.current);
-            }
-
-            tooltipTimerRef.current = window.setTimeout(() => {
-              setTooltipData(undefined);
-              tooltipTimerRef.current = null;
-            }, 3000); */
-
-            return;
-          }
-        }
+    // 不立即清除十字线和tooltip，让用户可以看到最后一个数据点
+    setTimeout(() => {
+      if (!isDragging) {
+        setCrosshair(null);
       }
-
-      // 重置触摸状态
-      setTouchStartPos(null);
-      setPrevTouchDistance(null);
-      setIsDragging(false);
-
-      // 不立即清除十字线和tooltip，让用户可以看到最后一个数据点
-      setTimeout(() => {
-        if (!isDragging) {
-          setCrosshair(null);
-          if (!isInNewsTip.current) {
-            setTooltipData(undefined);
-          }
-        }
-      }, 2000);
-    },
-    [
-      touchStartTime,
-      touchStartPos,
-      tooltipData,
-      visibleData,
-      xScale,
-      margin.left,
-      yScale,
-      margin.top,
-      isDragging,
-    ]
-  );
+    }, 2000);
+  }, [isDragging]);
 
   // 使用非被动事件监听器来处理触摸事件
   useEffect(() => {
     const svgElement = svgRef.current;
     if (!svgElement) return;
 
-    // 为简化阻止原生触摸行为的函数
-    const preventTouchDefault = (e: TouchEvent) => {
+    // 简化的阻止默认行为函数
+    const preventDefault = (e: Event | TouchEvent) => {
       // 阻止默认的触摸行为，如滚动、缩放等
       e.preventDefault();
     };
 
+    // 添加非被动事件监听器
+    svgElement.addEventListener("wheel", preventDefault, { passive: false });
     // 添加触摸事件的非被动监听器
-    svgElement.addEventListener("touchstart", preventTouchDefault, {
+    svgElement.addEventListener("touchstart", preventDefault, {
       passive: false,
     });
-    svgElement.addEventListener("touchmove", preventTouchDefault, {
+    svgElement.addEventListener("touchmove", preventDefault, {
       passive: false,
     });
-    svgElement.addEventListener("touchend", preventTouchDefault, {
+    svgElement.addEventListener("touchend", preventDefault, {
       passive: false,
     });
 
     // 清理函数
     return () => {
-      svgElement.removeEventListener("touchstart", preventTouchDefault);
-      svgElement.removeEventListener("touchmove", preventTouchDefault);
-      svgElement.removeEventListener("touchend", preventTouchDefault);
+      svgElement.removeEventListener("touchstart", preventDefault);
+      svgElement.removeEventListener("touchmove", preventDefault);
+      svgElement.removeEventListener("touchend", preventDefault);
+      svgElement.removeEventListener("wheel", preventDefault);
     };
   }, []);
 
@@ -1296,29 +1193,39 @@ export const VisxCandleStickChartV3 = ({
                       // 固定点与蜡烛上延线顶点的距离为10
                       const pointOffset = 10; // 点与蜡烛上延线顶点的固定距离
                       const pointSpacing = r * 2 + 2; // 点之间的间距
-                      
-                      return (<g onMouseLeave={handleMarkPointMouseLeave} key={idx}>
-                        <circle
-                          cx={x}
-                          cy={highY - pointOffset - r - pointSpacing * idx}
-                          r={r}
-                          fill="blue"
-                          stroke="#fff"
-                          strokeWidth={1}
-                          style={{ cursor: "pointer" }}
-                        />
-                        <text
-                          x={x}
-                          y={highY - pointOffset - r - pointSpacing * idx}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill="#fff"
-                          fontSize={7}
-                          fontWeight="bold"
-                          pointerEvents="none">
-                          {point.type}
-                        </text>
-                      </g>)
+
+                      return (
+                        <g
+                          onMouseLeave={handleMarkPointMouseLeave}
+                          onMouseEnter={e =>
+                            handleMarkPointMouseEnter({ e, point })
+                          }
+                          onTouchStart={e =>
+                            handleMarkPointMouseEnter({ e, point })
+                          }
+                          key={idx}>
+                          <circle
+                            cx={x}
+                            cy={highY - pointOffset - r - pointSpacing * idx}
+                            r={r}
+                            fill="blue"
+                            stroke="#fff"
+                            strokeWidth={1}
+                            style={{ cursor: "pointer" }}
+                          />
+                          <text
+                            x={x}
+                            y={highY - pointOffset - r - pointSpacing * idx}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill="#fff"
+                            fontSize={7}
+                            fontWeight="bold"
+                            pointerEvents="none">
+                            {point.type}
+                          </text>
+                        </g>
+                      );
                     })}
                   </Group>
                 );
@@ -1385,9 +1292,6 @@ export const VisxCandleStickChartV3 = ({
                     tickFormat={(date, i) => {
                       if (i === 0) dateMap.clear();
                       const d = date as Date;
-                      /* console.log('---', {
-                    isDw, idMo: curInterVal.includes('mo')
-                  }); */
 
                       if (curInterVal.includes("mo"))
                         return dayjs(d).format("YY/MM");
@@ -1492,24 +1396,21 @@ export const VisxCandleStickChartV3 = ({
           </svg>
 
           {/* 工具提示 */}
-          {tooltipData &&
-            tooltipData.markPoint &&
-            tooltipData.isHoveringMarkPoint &&
-            !isMobile && (
-              // @ts-ignore
-              <TooltipWithBounds
-                key={Math.random()} // 确保更新位置
-                style={{
-                  ...tooltipStyles,
-                  pointerEvents: "auto", // 允许鼠标事件
-                }}
-                top={tooltipData.y - 5}
-                left={tooltipData.x - 5}
-                onMouseEnter={handleTooltipMouseEnter}
-                onMouseLeave={handleTooltipMouseLeave}>
-                {ToolTip && <ToolTip {...tooltipData.markPoint} />}
-              </TooltipWithBounds>
-            )}
+          {markPointData?.point && !isMobile && (
+            // @ts-ignore
+            <TooltipWithBounds
+              key={Math.random()} // 确保更新位置
+              style={{
+                ...tooltipStyles,
+                pointerEvents: "auto", // 允许鼠标事件
+              }}
+              top={markPointData.y - 5}
+              left={markPointData.x - 5}
+              onMouseEnter={handleTooltipMouseEnter}
+              onMouseLeave={handleTooltipMouseLeave}>
+              {ToolTip && <ToolTip {...markPointData.point} />}
+            </TooltipWithBounds>
+          )}
         </div>
         <BottomToolV3
           addRangeFn={() => updateRangeFn("add")}
@@ -1519,12 +1420,12 @@ export const VisxCandleStickChartV3 = ({
           rightMoveFn={() => updateRangeFn("right")}
         />
       </div>
-      {tooltipData &&
-        tooltipData.markPoint &&
-        tooltipData.isHoveringMarkPoint &&
-        isMobile && (
-          <div>{ToolTip && <ToolTip {...tooltipData.markPoint} />}</div>
-        )}
+      {markPointData?.point && isMobile && (
+        <div className="relative">
+          <div className="text-lg ml-2 rounded-full border border-solid border-gray-500 h-5 w-5 flex justify-center items-center" onClick={() => setMarkPointData(undefined)}>x</div>
+          {ToolTip && <ToolTip {...markPointData.point} />}
+        </div>
+      )}
       {isLoading && (
         <div className="absolute top-0 right-0 bottom-0 left-0 flex items-center justify-center z-10 bg-slate-500 bg-opacity-50">
           loading...

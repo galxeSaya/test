@@ -23,7 +23,7 @@ const TooltipContent = (markPoint: CandleStickMarkPoint) => {
   const isMobile = getIsMobile();
   return (
     <div className={clsx({
-      "p-6": isMobile
+      "p-2 text-sm": isMobile
     })}>
       <strong>{markPoint.title}</strong>
       <p>{markPoint.content}</p>

@@ -69,7 +69,7 @@ const TopTool = ({
   };
 
   return (
-    <div className="flex justify-start flex-wrap items-center px-6 py-3">
+    <div className={clsx("flex justify-start flex-wrap items-center py-3", isMobile ? 'px-2': 'px-6')}>
       <div
         className={clsx("flex items-center", {
           "w-full": isMobile,

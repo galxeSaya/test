@@ -36,7 +36,7 @@ const PriceTip = ({ tooltipData }: { tooltipData?: TTooltipData }) => {
 
   return (
     <div className={clsx("p-6 flex flex-col gap-1 select-none", {
-      "text-sm pr-2 py-2": isMobile,
+      "!text-sm !p-2 !py-1": !!isMobile,
     })}>
       <div className={clsx("flex flex-wrap justify-between items-center")}>
         <div className={clsx("flex items-center gap-3", {
