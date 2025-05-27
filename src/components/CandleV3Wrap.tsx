@@ -106,6 +106,33 @@ const CandleV3Wrap = () => {
 
       <div className="mt-4 text-sm text-gray-600">
         <p>提示: 蓝色圆代表新闻事件，可查看详情。</p>
+        <h3>已完成功能（包括但不限于）</h3>
+        {
+          (() => {
+            const features = [
+              "pc & mobile",
+              "",
+              "1. 多种时间间隔的蜡烛图展示",
+              "2. 鼠标悬停时显示蜡烛图数据",
+              "3. 点击蜡烛图查看详细数据",
+              "4. 在蜡烛图上添加标记点（如新闻事件）",
+              "5. 在移动端和桌面端自适应展示",
+              "6. 自定义标记点内容和样式",
+              "7. 动态加载数据和更新图表",
+              "only pc",
+              "",
+              "8. 支持图表缩放和拖动",
+              "only mobile",
+              "",
+              "9. 支持手势操作（如双指缩放）",
+            ];
+            return features.map((feature, index) => (
+              <p key={index} className={clsx({
+                "my-1": !feature,
+              })}>{feature}</p>
+            ));
+          })()
+        }
       </div>
     </>
   );
