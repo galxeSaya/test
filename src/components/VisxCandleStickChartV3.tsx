@@ -368,11 +368,10 @@ export const VisxCandleStickChartV3 = ({
     }
   }, [isDragging, tooltipData]);
 
-  // 鼠标离开新闻点处理函数
+  // 鼠标离开markPoint处理函数
   const handleMarkPointMouseLeave = useCallback(() => {
-    // 不立即清除tooltipData，设置延迟
+    // 如果当前显示了markPoint弹窗，设置延迟隐藏
     if (markPointData) {
-      // 如果当前显示了新闻弹窗，设置延迟隐藏
       if (tooltipTimerRef.current) {
         window.clearTimeout(tooltipTimerRef.current);
       }
@@ -396,7 +395,7 @@ export const VisxCandleStickChartV3 = ({
     }
   }, [isDragging, markPointData]);
 
-  // 鼠标移入新闻点处理函数
+  // 鼠标移入markPoint点处理函数
   const handleMarkPointMouseEnter = useCallback(
     ({
       e,
@@ -409,7 +408,7 @@ export const VisxCandleStickChartV3 = ({
       if (isDragging) return;
       const { x, y } = localPoint(e) || { x: 0, y: 0 };
 
-      // 鼠标移入新闻点，清除隐藏计时器
+      // 鼠标移入markPoint点，清除隐藏计时器
       if (tooltipTimerRef.current) {
         window.clearTimeout(tooltipTimerRef.current);
         tooltipTimerRef.current = null;
@@ -688,6 +687,7 @@ export const VisxCandleStickChartV3 = ({
     });
   };
 
+  // 处理全屏事件
   const toogleExpand = () => {
     if (!wrapRef.current) return;
     if (!isExpanded) {
@@ -721,6 +721,7 @@ export const VisxCandleStickChartV3 = ({
     }
   };
 
+  // 处理快照生成
   const handleSnapShot = async () => {
     if (!chartWrapRef.current) return;
 
@@ -742,6 +743,7 @@ export const VisxCandleStickChartV3 = ({
     }
   };
 
+  // 工具条功能
   const updateRangeFn = (
     type: "add" | "decrease" | "left" | "right" | "refresh"
   ) => {
@@ -1190,7 +1192,7 @@ export const VisxCandleStickChartV3 = ({
                       strokeWidth={1}
                     />
 
-                    {/* 新闻点标记 */}
+                    {/* markPoint点标记 */}
                     {points.map((point, idx) => {
                       const r = Math.min(Math.max(candleWidth / 2, 3), 10);
                       // 固定点与蜡烛上延线顶点的距离为10
