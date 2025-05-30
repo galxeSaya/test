@@ -46,7 +46,7 @@ interface VisxCandleStickChartProps {
   defaultInterval?: ComponentProps<typeof TopTool>["defaultInterval"];
   intervalList?: ComponentProps<typeof TopTool>["intervalList"];
   switchInterval?: ComponentProps<typeof TopTool>["switchInterval"];
-  ToolTip?: (markPoint: CandleStickMarkPoint) => JSX.Element;
+  ToolTip?: React.ComponentType<CandleStickMarkPoint>;
 }
 
 // Tooltip 样式
