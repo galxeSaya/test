@@ -211,7 +211,11 @@ export const VisxCandleStickChartV3 = ({
   const dateLeadStr = useMemo(() => {
     const intervaltype = curInterVal.match(/^(\d+)([a-zA-Z]+)$/)?.[2] || "";
     console.log("intervaltype", intervaltype);
-    return ["d", "w"].includes(intervaltype) ? "YY/MM" : "YY/MM/DD";
+    return ["mo"].includes(intervaltype)
+      ? "YY"
+      : ["d", "w"].includes(intervaltype)
+      ? "YY/MM"
+      : "YY/MM/DD";
   }, [curInterVal]);
 
   /**
@@ -222,10 +226,10 @@ export const VisxCandleStickChartV3 = ({
   const customTickValues = useMemo(() => {
     if (!visibleData.length) return [];
     const axisTickMap: Map<string, number> = new Map();
-    const showItemArr: { idx: number; isLead?: boolean }[] = [];
+    const showItemArr: { idx: number; isLead?: boolean; date: number }[] = [];
 
     // 估计每个标签需要的最小宽度（像素）
-    const minWidthPerLabel = 80;
+    const minWidthPerLabel = 120;
 
     // 计算可以容纳的标签数量
     const maxLabels = Math.floor(innerWidth / minWidthPerLabel);
@@ -237,8 +241,37 @@ export const VisxCandleStickChartV3 = ({
         .filter((_, i) => i % distance === 0)
         .map(d => getDate(d));
 
-    // 生成标签值数组
     visibleData.forEach((_, i) => {
+      const dateStr = dayjs(getDate(_)).format(dateLeadStr);
+      if (!axisTickMap.has(dateStr)) {
+        axisTickMap.set(dateStr, i);
+        showItemArr.push({
+          idx: i,
+          date: getDate(_),
+          isLead: true, // 第一个点标记为isLead
+        });
+      } else if (i - showItemArr.slice(-1)[0].idx >= distance) {
+        showItemArr.push({
+          idx: i,
+          date: getDate(_),
+        });
+      }
+    });
+
+    return showItemArr
+      .filter((_, i) => {
+        // 如果是第一个点，或者当前点与前一个点的索引差距大于等于distance，则保留
+        const judge_first_lead = i === 0 || _.isLead
+        // 如果当前点与前一个点的索引差距大于等于distance，如果同时后面的点存在且与后面的点的索引差距也大于等于distance，则保留
+        const judge_distance = i > 0 && _.idx - showItemArr[i - 1].idx >= distance &&
+          (!showItemArr[i + 1]
+            ? true
+            : showItemArr[i + 1].idx - _.idx >= distance)
+        return judge_first_lead || judge_distance
+      })
+      .map(_ => _.date);
+    // 生成标签值数组
+    /* visibleData.forEach((_, i) => {
       const dateStr = dayjs(getDate(_)).format(dateLeadStr);
       const before = showItemArr[showItemArr.length - 1]?.idx;
       if (!axisTickMap.has(dateStr)) {
@@ -267,7 +300,7 @@ export const VisxCandleStickChartV3 = ({
 
     return visibleData
       .filter((_, i) => showItemArr.map(_ => _.idx).includes(i))
-      .map(d => getDate(d));
+      .map(d => getDate(d)); */
   }, [visibleData, innerWidth, dateLeadStr, curInterVal]);
 
   // 添加状态跟踪鼠标位置
@@ -401,7 +434,9 @@ export const VisxCandleStickChartV3 = ({
       e,
       point,
     }: {
-      e: React.MouseEvent<SVGGElement, MouseEvent> | React.TouchEvent<SVGGElement>;
+      e:
+        | React.MouseEvent<SVGGElement, MouseEvent>
+        | React.TouchEvent<SVGGElement>;
       point: CandleStickMarkPoint;
     }) => {
       // 如果正在拖动，则调用拖动处理函数
@@ -1262,8 +1297,9 @@ export const VisxCandleStickChartV3 = ({
               {/* X轴 - 使用自适应计算的标签 */}
               {(() => {
                 const dateMap = new Map<string, number>();
-                const isDw =
+                const isDW =
                   curInterVal.includes("d") || curInterVal.includes("w");
+                const intervaltype = curInterVal.match(/^(\d+)([a-zA-Z]+)$/)?.[2] || ''
                 return (
                   <AxisBottom
                     hideTicks
@@ -1295,19 +1331,19 @@ export const VisxCandleStickChartV3 = ({
                       );
                     }}
                     tickFormat={(date, i) => {
-                      if (i === 0) dateMap.clear();
-                      const d = date as Date;
+                      if (i === 0) dateMap.clear()
+                      const d = date as Date
 
-                      if (curInterVal.includes("mo"))
-                        return dayjs(d).format("YY/MM");
-                      const preDate = dayjs(d).format(dateLeadStr);
-                      const afterDate = dayjs(d).format("HH:mm:ss");
-                      if (dateMap.has(preDate))
-                        return isDw ? dayjs(d).format("MM/DD") : afterDate;
-                      dateMap.set(preDate, i);
-                      return isDw
-                        ? dayjs(d).format("YY/MM")
-                        : `${preDate} ${afterDate}`;
+                      if (curInterVal.includes('mo')) {
+                        return dayjs(d).format('YY/MM')
+                      }
+                      const preDate = dayjs(d).format(dateLeadStr)
+                      const afterDate = isDW ? dayjs(d).format('MM/DD') : (curInterVal.includes('h') || curInterVal.includes('m')) ? dayjs(d).format('HH:mm') : dayjs(d).format('mm:ss')
+                      if (dateMap.has(preDate)) {
+                        return afterDate
+                      }
+                      dateMap.set(preDate, i)
+                      return ["h", "m", "s"].includes(intervaltype) ? dayjs(d).format('MM/DD') : preDate
                     }}
                   />
                 );
@@ -1427,7 +1463,11 @@ export const VisxCandleStickChartV3 = ({
       </div>
       {markPointData?.point && isMobile && (
         <div className="relative">
-          <div className="text-lg ml-2 rounded-full border border-solid border-gray-500 h-5 w-5 flex justify-center items-center" onClick={() => setMarkPointData(undefined)}>x</div>
+          <div
+            className="text-lg ml-2 rounded-full border border-solid border-gray-500 h-5 w-5 flex justify-center items-center"
+            onClick={() => setMarkPointData(undefined)}>
+            x
+          </div>
           {ToolTip && <ToolTip {...markPointData.point} />}
         </div>
       )}
